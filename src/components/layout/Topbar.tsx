@@ -1,0 +1,6 @@
+'use client'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
+import type { Profile } from '@/types/database'
+import type { User } from '@supabase/supabase-js'
+export default function Topbar({user,profile}:{user:User;profile:Profile|null}){const initials=(profile?.full_name||user.email||'U').split(' ').map(w0=>w[0]).join('').toUpperCase().substring(0,2);return(<header className="h-14 bg-nf-surface border-b border-nf-border flex items-center justify-between px-6 flex-shrink-0"><div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-nf-teal"/><span className="text-xs font-mono text-muted-foreground">All systems operational</span></div><div className="flex items-center gap-2"><Link href="/generator" className="flex items-center gap-1.5 nf-btn-primary px-3 py-1.5 text-xs rounded-lg"><Plus size={13}/>New Business</Link><div className="w-8 h-8 rounded-lg bg-nf-purple/20 border border-nf-purple/30 flex items-center justify-center text-xs font-bold text-nf-purple">{initials}</div></div></header>)}\n 
