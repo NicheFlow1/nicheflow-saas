@@ -1,1 +1,30 @@
-/** @type {import('tailwindcss').Config} */\nmodule.exports = {\n  darkMode: ['class'],\n  content: ['./src/pages/**/*.{js,ts,jsx,tsx}', './src/components/**/*.{js,ts,jsx,tsx}', './src/app/**/*.{js,ts,jsx,tsx}'],\n  theme: {\n    extend: {\n      fontFamily: { sans: ['var(--font-syne)', 'system-ui', 'sans-serif'], mono: ['var(--font-dm-mono)', 'monospace'] },\n      colors: {\n        border: 'hsl(var(--border))', input: 'hsl(var(--input))', ring: 'hsl(var(--ring))',\n        background: 'hsl(var(--background))', foreground: 'hsl(var(--foreground))',\n        primary: { DEFAULT: 'hsl(var(--primary))', foreground: 'hsl(var(--primary-foreground))' },\n        secondary: { DEFAULT: 'hsl(var(--secondary))', foreground: 'hsl(var(--secondary-foreground))' },\n        muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },\n        accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },\n        destructive: { DEFAULT: 'hsl(var(--destructive))', foreground: 'hsl(var(--destructive-foreground))' },\n        card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },\n        nf: { purple: '#7c6fff', pink: '#ff6b9d', teal: '#00d4a8', amber: '#ffaa40', bg: '#0a0a0f', surface: '#111118', surface2: '#1a1a24', surface3: '#22222f', border: '#2a2a38', border2: '#353548' }\n      },\n      borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },\n      animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4,0,0.6,1) infinite', 'fade-in': 'fadeIn 0.4s ease-out' },\n      keyframes: { fadeIn: { from: { opacity: '0' }, to: { opacity: '1' } } }\n    }\n  },\n  plugins: [require('tailwindcss-animate')]\n}\n 
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: 'class',
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['var(--font-syne)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-dm-mono)', 'monospace'],
+      },
+      colors: {
+        'nf-bg': '#0a0a0f',
+        'nf-surface': '#111118',
+        'nf-surface2': '#16161f',
+        'nf-surface3': '#1c1c28',
+        'nf-border': '#2a2a38',
+        'nf-border2': '#3a3a4a',
+        'nf-purple': '#7c6fff',
+        'nf-pink': '#ff6b9d',
+        'nf-teal': '#00d4a8',
+        'nf-amber': '#f59e0b',
+      },
+    },
+  },
+  plugins: [],
+}
