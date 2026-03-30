@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Wand2, FolderKey2, Settings, Zap, LogOut } from 'lucide-react'
+import { LayoutDashboard, Wand2, FolderOpen, Settings, Zap, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { Profile } from '@/types/database'
@@ -11,7 +11,7 @@ import { PLAN_LIMITS } from '@/types/database'
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/generator', label: 'Generator', icon: Wand2 },
-  { href: '/projects', label: 'Projects', icon: FolderKey2 },
+  { href: '/projects', label: 'Projects', icon: FolderOpen },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
