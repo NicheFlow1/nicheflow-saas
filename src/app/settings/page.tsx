@@ -17,13 +17,22 @@ export default async function SettingsPage() {
           <div className="max-w-2xl mx-auto space-y-6">
             <h1 className="text-2xl font-bold">Settings</h1>
             <div className="nf-card p-5 space-y-4">
-              <div><label className="text-xs font-mono text-muted-foreground">EMAIL</label><p className="text-sm mt-1">{user.email}</p></div>
-              <div><label className="text-xs font-mono text-muted-foreground">PLAN</label><p className="text-sm mt-1 capitalize text-nf-purple font-semibold">{profile?.plan || 'free'}</p></div>
+              <div>
+                <label className="text-xs font-mono text-muted-foreground">EMAIL</label>
+                <p className="text-sm mt-1">{user.email}</p>
+              </div>
+              <div>
+                <label className="text-xs font-mono text-muted-foreground">PLAN</label>
+                <p className="text-sm mt-1 capitalize text-nf-purple font-semibold">{profile?.plan || 'free'}</p>
+              </div>
             </div>
             <div className="nf-card overflow-hidden">
               <Link href="/settings/billing" className="flex items-center gap-3 p-5 hover:bg-nf-surface2 transition-colors">
-                <div className="flex-1"><div className="text-sm font-medium">Billing and Plans</div><div className="text-xs text-muted-foreground">Manage subscription</div></div>
-                <span className="text-muted-foreground">→</span>
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Billing and Plans</div>
+                  <div className="text-xs text-muted-foreground">Manage subscription</div>
+                </div>
+                <span className="text-muted-foreground text-lg">&rarr;</span>
               </Link>
             </div>
           </div>
