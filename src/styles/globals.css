@@ -2,7 +2,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@layer base{:root{--background:240 10% 4%;--foreground:240 5% 95%;--card:240 10% 7%;--card-foreground:240 5% 95%;--border:240 8% 15%;--input:240 8% 15%;--ring:252 100% 72%;--primary:252 100% 72%;--primary-foreground:0 0% 100%;--secondary:240 8% 15%;--secondary-foreground:240 5% 65%;--muted:240 8% 15%;--muted-foreground:240 5% 55%;--accent:252 100% 72%;--accent-foreground:0 0% 100%;--destructive:0 72% 51%;--destructive-foreground:0 0% 100%;--radius:0.75rem}}
-@layer base{*{@apply border-border}}body{@apply bg-nf-bg text-foreground font-sans antialiased;background:#0a0a0f}
-@layer components{.gradient-text{background:linear-gradient(135deg,#7c6fff,#ff6b9d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}.nf-card{@apply bg-nf-surface border border-nf-border rounded-xl}.nf-card-hover{@apply nf-card transition-all duration-200 hover:border-nf-border2 hover:bv-nf-surface2}.nf-btn-primary{@apply bg-nf-purple hover:bv-purple-500 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-all duration-150 active:scale-95}.nf-btn-ghost{@apply bg-transparent hover:bg-nf-surface2 text-muted-foreground hover:text-foreground font-medium text-sm px-4 py-2 rounded-lg transition-all duration-150}.glow-purple{box-shadow:0 0 20px rgba(124,111,255,0.15)}}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#2a2a38;border-radius:2px}
+
+@layer base {
+  * { box-sizing: border-box; }
+  body { @apply bg-nf-bg text-foreground font-sans antialiased; background: #0a0a0f; }
+  :root {
+    --background: 240 10% 4%;
+    --foreground: 240 5% 96%;
+    --muted: 240 5% 26%;
+    --muted-foreground: 240 5% 65%;
+    --card: 240 10% 7%;
+    --card-foreground: 240 5% 96%;
+    --border: 240 5% 18%;
+    --input: 240 5% 18%;
+    --primary: 250 100% 71%;
+    --primary-foreground: 240 10% 4%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer components {
+  .nf-card { @apply bg-nf-surface border border-nf-border rounded-2xl; }
+  .nf-card-hover { @apply nf-card hover:bg-nf-surface2 hover:border-nf-border2 transition-all cursor-pointer; }
+  .nf-btn-primary { @apply bg-nf-purple text-white font-semibold text-sm transition-all hover:opacity-90 active:scale-95; }
+  .nf-btn-ghost { @apply text-muted-foreground font-medium text-sm transition-all hover:text-foreground; }
+  .gradient-text { @apply bg-gradient-to-r from-nf-purple via-nf-pink to-nf-teal bg-clip-text text-transparent; }
+  .glow-purple { box-shadow: 0 0 30px rgba(124,111,255,0.15); }
+}
