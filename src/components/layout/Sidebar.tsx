@@ -2,34 +2,27 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Wand2, FolderOpen, Settings, Zap, LogOut } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { createClient } from '@supabase/supabase-js'
 import type { Profile } from '@/types/database'
 import { cn } from '@/lib/utils'
 import { PLAN_LIMITS } from '@/types/database'
-
+const supabase = createClient('https://aincmpxokmsygyghvtnm.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpbmNtcHhva21zeWd5Z2h2dG5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyODQ4NzAsImV4cCI6MjA4OTg2MDg3MH0.qy9k6S3pgNv7CPnvJlgqeGzgzHBB0J59cCWVsbSa75U')
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/generator', label: 'Generator', icon: Wand2 },
   { href: '/projects', label: 'Projects', icon: FolderOpen },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
-
 export default function Sidebar({ profile }: { profile: Profile | null }) {
   const pathname = usePathname()
-  const router = useRouter()
-  const supabase = createClient()
   const plan = profile?.plan || 'free'
   const used = profile?.generations_used || 0
   const limit = profile?.generations_limit || 7
   const pct = Math.min((used / limit) * 100, 100)
-
   async function signOut() {
     await supabase.auth.signOut()
-    router.push('/')
-    router.refresh()
+    window.location.href = '/'
   }
-
   return (
     <aside className="w-[220px] flex-shrink-0 bg-nf-surface border-r border-nf-border flex flex-col h-full">
       <div className="px-5 py-5 border-b border-nf-border">
@@ -45,10 +38,9 @@ export default function Sidebar({ profile }: { profile: Profile | null }) {
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
           return (
-            <Link key={href} href={href}
-              className={cn('flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-                active ? 'bg-nf-surface3 text-foreground border border-nf-border2' : 'text-muted-foreground hover:bg-nf-surface2 hover:text-foreground border border-transparent'
-              )}>
+            <Link key={href} href={href} className={cn('flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+              active ? 'bg-nf-surface3 text-foreground border border-nf-border2' : 'text-muted-foreground hover:bg-nf-surface2 hover:text-foreground border border-transparent'
+            )}>
               <Icon size={15}/> {label}
             </Link>
           )
