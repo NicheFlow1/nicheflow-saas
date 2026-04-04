@@ -1,53 +1,42 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+import{useEffect,useState}from 'react'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import Sidebar from '@/components/layout/Sidebar'
-import Topbar from '@/components/layout/Topbar'
-import { formatRelativeTime, STATUS_COLORS, cn } from '@/lib/utils'
-import { Wand2, ChevronRight } from 'lucide-react'
-export const revalidate = 0
-export default async function ProjectsPage() {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-  const { data: projects } = await supabase.from('projects').select('*').eq('user_id', user.id).order('updated_at', { ascending: false })
-  return (
-    <div className="flex h-screen bg-nf-bg overflow-hidden">
-      <Sidebar profile={profile}/>
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Topbar user={user} profile={profile}/>
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-          <div className="max-w-5xl mx-auto space-y-6">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-bold">Projects</h1>
-              <Link href="/generator" className="nf-btn-primary flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm"><Wand2 size={14}/> New Business</Link>
-            </div>
-            {!projects?.length ? (
-              <div className="nf-card p-16 text-center">
-                <h2 className="text-lg font-bold mb-2">No projects yet</h2>
-                <Link href="/generator" className="nf-btn-primary px-6 py-2.5 rounded-xl inline-flex items-center gap-2 text-sm">Generate First</Link>
-              </div>
-            ) : (
-              <div className="grid gap-3">
-                {projects.map(p => (
-                  <Link href={'/projects/'+p.id} key={p.id} className="nf-card-hover p-5 flex items-center gap-4">
-                    <div className="w-11 h-11 rounded-xl bg-nf-surface2 flex items-center justify-center text-xl">&#x1F4A1;</div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-semibold">{p.name}</span>
-                        <span className={cn('text-xs px-2 py-0.5 rounded-full border', STATUS_COLORS[p.status])}>{p.status}</span>
-                      </div>
-                      <div className="text-xs font-mono text-muted-foreground">{formatRelativeTime(p.updated_at)}</div>
-                    </div>
-                    <ChevronRight size={16} className="text-muted-foreground"/>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </main>
+import{supabase}from '@/lib/supabase/client-singleton'
+function rel(d:string){const s=Math.floor((Date.now()-new Date(d).getTime())/1000);if(s<60)return s+'s ago';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';}
+export default function ProjectsPage(){
+  const[projects,setProjects]=useState<any[]>([])
+  const[loading,setLoading]=useState(true)
+  useEffect(()=>{
+    supabase.auth.getSession().then(async({data:{session}})=>{
+      if(!session)return
+      const{data}=await supabase.from('projects').select('*').eq('user_id',session.user.id).order('updated_at',{ascending:false})
+      setProjects(data||[]);setLoading(false)
+    })
+  },[])
+  if(loading)return<div className="flex items-center justify-center h-64"><div className="text-muted-foreground text-sm">Loading...</div></div>
+  return(
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Projects</h1>
+        <Link href="/generator" className="nf-btn-primary px-4 py-2 rounded-xl text-sm">New Project</Link>
       </div>
+      {!projects.length?(
+        <div className="nf-card p-12 text-center">
+          <p className="text-muted-foreground text-sm mb-4">No projects yet. Generate your first business idea!</p>
+          <Link href="/generator" className="nf-btn-primary px-4 py-2 rounded-lg text-sm">Get Started</Link>
+        </div>
+      ):(
+        <div className="grid grid-cols-2 gap-4">{projects.map(p=>(
+          <Link href={'/projects/'+p.id} key={p.id} className="nf-card p-5 hover:border-nf-purple/40 transition-colors">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-nf-purple/20 to-nf-pink/20 flex items-center justify-center font-bold">{p.name[0].toUpperCase()}</div>
+              <span className="text-xs px-2 py-0.5 rounded-full border border-nf-border">{p.status}</span>
+            </div>
+            <h3 className="font-semibold text-sm mb-1">{p.name}</h3>
+            <p className="text-xs text-muted-foreground">{rel(p.updated_at)}</p>
+          </Link>
+        ))}</div>
+      )}
     </div>
   )
 }
