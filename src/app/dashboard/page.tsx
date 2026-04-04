@@ -1,60 +1,117 @@
 'use client'
-import{useEffect,useState}from 'react'
-import Link from 'next/link'
-import{supabase}from '@/lib/supabase/client-singleton'
-function rel(d:string){const s=Math.floor((Date.now()-new Date(d).getTime())/1000);if(s<60)return s+'s ago';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';}
+import{useEffect,useState}from'react'
+import Link from'next/link'
+import{supabase}from'@/lib/supabase/client-singleton'
+import{TrendingUp,Wand2,BookmarkCheck,Zap,ChevronRight,Target,DollarSign}from'lucide-react'
+
+function ScoreBadge({score}:{score:number}){
+  const color=score>=80?'text-green-400 bg-green-400/10 border-green-400/20':score>=60?'text-nf-amber bg-nf-amber/10 border-nf-amber/20':'text-red-400 bg-red-400/10 border-red-400/20'
+  return<span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${color}`}>{score}</span>
+}
+
 export default function DashboardPage(){
   const[profile,setProfile]=useState<any>(null)
-  const[projects,setProjects]=useState<any[]>([])
-  const[activity,setActivity]=useState<any[]>([])
+  const[opportunities,setOpportunities]=useState<any[]>([])
+  const[saved,setSaved]=useState<number>(0)
   const[loading,setLoading]=useState(true)
+
   useEffect(()=>{
     supabase.auth.getSession().then(async({data:{session}})=>{
       if(!session)return
       const uid=session.user.id
-      const[{data:pr},{data:pj},{data:ac}]=await Promise.all([
+      const[{data:pr},{data:opps},{data:sv}]=await Promise.all([
         supabase.from('profiles').select('*').eq('id',uid).single(),
-        supabase.from('projects').select('*').eq('user_id',uid).order('updated_at',{ascending:false}).limit(5),
-        supabase.from('activity_feed').select('*').eq('user_id',uid).order('created_at',{ascending:false}).limit(8)
+        supabase.from('opportunities').select('*').eq('user_id',uid).order('overall_score',{ascending:false}).limit(5),
+        supabase.from('saved_opportunities').select('id',{count:'exact'}).eq('user_id',uid)
       ])
-      setProfile(pr);setProjects(pj||[]);setActivity(ac||[]);setLoading(false)
+      setProfile(pr);setOpportunities(opps||[]);setSaved(sv?.length||0);setLoading(false)
     })
   },[])
-  if(loading)return<div className="flex items-center justify-center h-64"><div className="text-muted-foreground text-sm">Loading...</div></div>
+
+  if(loading)return<div className="flex items-center justify-center h-64"><div className="text-muted-foreground text-sm">Loading intelligence...</div></div>
+
+  const used=profile?.generations_used||0
+  const limit=profile?.generations_limit||7
+
   return(
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <Link href="/generator" className="nf-btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm">Generate Business</Link>
+        <div>
+          <h1 className="text-2xl font-bold">Intelligence Hub</h1>
+          <p className="text-sm text-muted-foreground">Your opportunity discovery dashboard</p>
+        </div>
+        <Link href="/generator" className="nf-btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm">
+          <Wand2 size={14}/> Find Opportunities
+        </Link>
       </div>
+
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="nf-card p-5"><div className="text-xs font-mono text-muted-foreground mb-1">PROJECTS</div><div className="text-3xl font-bold">{projects.length}</div></div>
-        <div className="nf-card p-5"><div className="text-xs font-mono text-muted-foreground mb-1">GENERATIONS</div><div className="text-3xl font-bold">{profile?.generations_used||0}/{profile?.generations_limit||7}</div></div>
-        <div className="nf-card p-5"><div className="text-xs font-mono text-muted-foreground mb-1">PLAN</div><div className="text-3xl font-bold capitalize">{profile?.plan||'free'}</div></div>
+        <div className="nf-card p-5">
+          <div className="flex items-center gap-2 mb-2"><TrendingUp size={15} className="text-nf-purple"/><span className="text-xs font-mono text-muted-foreground">ANALYZED</span></div>
+          <div className="text-3xl font-black">{opportunities.length}</div>
+          <div className="text-xs text-muted-foreground mt-1">opportunities</div>
+        </div>
+        <div className="nf-card p-5">
+          <div className="flex items-center gap-2 mb-2"><BookmarkCheck size={15} className="text-nf-pink"/><span className="text-xs font-mono text-muted-foreground">SAVED</span></div>
+          <div className="text-3xl font-black">{saved}</div>
+          <div className="text-xs text-muted-foreground mt-1">bookmarked</div>
+        </div>
+        <div className="nf-card p-5">
+          <div className="flex items-center gap-2 mb-2"><Zap size={15} className="text-nf-amber"/><span className="text-xs font-mono text-muted-foreground">CREDITS</span></div>
+          <div className="text-3xl font-black">{limit-used}</div>
+          <div className="text-xs text-muted-foreground mt-1">remaining</div>
+        </div>
       </div>
-      <div className="grid grid-cols-3 gap-5">
-        <div className="col-span-2 nf-card overflow-hidden">
-          <div className="flex justify-between px-5 py-4 border-b border-nf-border"><h2 className="text-sm font-semibold">Recent Projects</h2><Link href="/projects" className="text-xs text-nf-purple">View all</Link></div>
-          {!projects.length?(
-            <div className="p-8 text-center"><p className="text-sm text-muted-foreground mb-4">No projects yet.</p><Link href="/generator" className="nf-btn-primary text-xs px-4 py-2 rounded-lg">Start generating</Link></div>
-          ):(
-            <div>{projects.map(p=>(
-              <Link href={'/projects/'+p.id} key={p.id} className="flex items-center gap-3 px-5 py-3.5 border-b border-nf-border last:border-0 hover:bg-nf-surface2">
-                <div className="w-9 h-9 rounded-lg bg-nf-surface2 flex items-center justify-center text-sm font-bold">{p.name[0].toUpperCase()}</div>
-                <div className="flex-1"><div className="text-sm font-semibold">{p.name}</div><div className="text-xs text-muted-foreground">{rel(p.updated_at)}</div></div>
-                <span className="text-xs px-2 py-0.5 rounded-full border border-nf-border">{p.status}</span>
-              </Link>
-            ))}</div>
-          )}
+
+      {/* Top Opportunities */}
+      <div className="nf-card overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-nf-border">
+          <h2 className="text-sm font-semibold">Top Opportunities</h2>
+          <Link href="/projects" className="text-xs text-nf-purple flex items-center gap-1">View all<ChevronRight size={12}/></Link>
         </div>
-        <div className="nf-card overflow-hidden">
-          <div className="px-5 py-4 border-b border-nf-border"><h2 className="text-sm font-semibold">Activity</h2></div>
-          {!activity.length?(<p className="p-6 text-xs text-muted-foreground">No activity yet</p>):(
-            <div className="divide-y divide-nf-border">{activity.map(a=>(
-              <div key={a.id} className="px-5 py-3 flex gap-3"><div className="w-1.5 h-1.5 rounded-full bg-nf-purple mt-1.5"/><p className="text-xs text-muted-foreground">{a.message}</p></div>
-            ))}</div>
-          )}
-        </div>
+        {!opportunities.length?(
+          <div className="p-10 text-center">
+            <Wand2 size={32} className="text-nf-purple/30 mx-auto mb-3"/>
+            <p className="text-sm text-muted-foreground mb-4">No opportunities analyzed yet.</p>
+            <Link href="/generator" className="nf-btn-primary text-sm px-4 py-2 rounded-lg">Start discovering</Link>
+          </div>
+        ):(
+          <div className="divide-y divide-nf-border">
+            {opportunities.map((o:any)=>(
+              <div key={o.id} className="flex items-center gap-4 px-5 py-4 hover:bg-nf-surface2 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-nf-purple/20 to-nf-pink/20 flex items-center justify-center flex-shrink-0">
+                  <TrendingUp size={16} className="text-nf-purple"/>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold truncate">{o.title}</div>
+                  <div className="text-xs text-muted-foreground truncate">{o.niche}</div>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="text-right hidden sm:block">
+                    <div className="text-xs text-muted-foreground">Market</div>
+                    <div className="text-xs font-medium">{o.market_size?.slice(0,15)||'Emerging'}</div>
+                  </div>
+                  <ScoreBadge score={o.overall_score}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quick actions */}
+      <div className="grid grid-cols-2 gap-4">
+        <Link href="/generator" className="nf-card p-5 hover:border-nf-purple/40 transition-colors group">
+          <Wand2 size={20} className="text-nf-purple mb-3"/>
+          <h3 className="font-semibold text-sm">Analyze Opportunity</h3>
+          <p className="text-xs text-muted-foreground mt-1">Deep-dive into any niche or market idea</p>
+        </Link>
+        <Link href="/projects" className="nf-card p-5 hover:border-nf-pink/40 transition-colors group">
+          <BookmarkCheck size={20} className="text-nf-pink mb-3"/>
+          <h3 className="font-semibold text-sm">Saved Opportunities</h3>
+          <p className="text-xs text-muted-foreground mt-1">Review your bookmarked ideas</p>
+        </Link>
       </div>
     </div>
   )
