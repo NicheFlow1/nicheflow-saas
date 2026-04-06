@@ -1,41 +1,84 @@
 'use client'
-import Link from'next/link'
+import Link from 'next/link'
 import{usePathname}from'next/navigation'
-import{LayoutDashboard,Wand2,FolderOpen,Settings,Zap,LogOut}from'lucide-react'
+import{LayoutDashboard,Wand2,FolderOpen,Settings,Zap,LogOut,TrendingUp,BookmarkCheck,ChevronRight,Activity,Crosshair}from'lucide-react'
 import{supabase}from'@/lib/supabase/client-singleton'
-import type{Profile}from'@/types/database'
-import{cn}from'@/lib/utils'
-import{PLAN_LIMITS}from'@/types/database'
-const NAV=[{href:'/dashboard',label:'Dashboard',icon:LayoutDashboard},{href:'/generator',label:'Generator',icon:Wand2},{href:'/projects',label:'Projects',icon:FolderOpen},{href:'/settings',label:'Settings',icon:Settings}]
-export default function Sidebar({profile}:{profile:Profile|null}){
-  const pathname=usePathname()
-  const plan=profile?.plan||'free'
+
+const NAV=[
+  {section:'INTELLIGENCE'},
+  {href:'/dashboard',label:'Hub',icon:LayoutDashboard,desc:'Overview'},
+  {href:'/generator',label:'Engine',icon:Crosshair,desc:'Analyze'},
+  {href:'/projects',label:'Base',icon:BookmarkCheck,desc:'Saved'},
+  {section:'ACCOUNT'},
+  {href:'/settings',label:'Settings',icon:Settings,desc:'Manage'},
+]
+
+export default function Sidebar({profile}:{profile:any}){
+  const path=usePathname()
   const used=profile?.generations_used||0
   const limit=profile?.generations_limit||7
   const pct=Math.min((used/limit)*100,100)
-  async function signOut(){await supabase.auth.signOut();window.location.href='/'}
+  const plan=profile?.plan||'free'
+
+  async function signOut(){
+    await supabase.auth.signOut()
+    window.location.href='/'
+  }
+
   return(
-    <aside className="w-[220px] flex-shrink-0 bg-nf-surface border-r border-nf-border flex flex-col h-full">
-      <div className="px-5 py-5 border-b border-nf-border">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-nf-purple to-nf-pink flex items-center justify-center text-white font-bold text-xs font-mono">NF</div>
-          <div><div className="font-bold text-sm">NicheFlow</div><div className="text-xs font-mono text-muted-foreground">AI Startup OS</div></div>
+    <aside className='sidebar'>
+      {/* LOGO */}
+      <div className='sidebar-logo'>
+        <div className='logo-mark'>NF</div>
+        <div>
+          <div style={{fontSize:13,fontWeight:800,color:'var(--text-primary)',letterSpacing:-0.3}}>NicheFlow</div>
+          <div style={{fontSize:9,fontWeight:600,color:'var(--text-dim)',fontFamily:'monospace',letterSpacing:'0.06em',textTransform:'uppercase'}}>Intelligence OS</div>
         </div>
       </div>
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV.map(({href,label,icon:Icon})=>{
-          const active=pathname===href||pathname.startsWith(href+'/')
-          return(<Link key={href} href={href} className={cn('flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',active?'bg-nf-surface3 text-foreground border border-nf-border2':'text-muted-foreground hover:bg-nf-surface2 hover:text-foreground border border-transparent')}><Icon size={15}/>{label}</Link>)
+
+      {/* NAV */}
+      <nav className='sidebar-nav'>
+        {NAV.map((item,i)=>{
+          if('section' in item){
+            return<div key={i} className='nav-section-label'>{item.section}</div>
+          }
+          const active=path===item.href||path.startsWith(item.href+'/')
+          const Icon=item.icon
+          return(
+            <Link key={item.href} href={item.href} className={'nav-item '+(active?'active':'')}>
+              <Icon size={14} style={{flexShrink:0,opacity:active?1:0.6}}/>
+              <span style={{flex:1}}>{item.label}</span>
+              {active&&<ChevronRight size={10} style={{opacity:0.4}}/>}
+            </Link>
+          )
         })}
       </nav>
-      <div className="px-3 pb-3 border-t border-nf-border pt-3">
-        <div className="bg-nf-surface2 border border-nf-border rounded-xl p-3 mb-2">
-          <div className="flex items-center justify-between mb-1"><span className="text-xs font-mono text-nf-purple">{PLAN_LIMITS[plan].label}</span><Zap size={12} className="text-nf-amber"/></div>
-          <div className="text-xs text-muted-foreground mb-2">{used}/{limit} generations</div>
-          <div className="h-1 bg-nf-surface3 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-nf-purple to-nf-pink rounded-full" style={{width:pct+'%'}}/></div>
-          {plan==='free'&&<Link href="/settings/billing" className="block mt-2 text-xs text-nf-purple hover:underline">Upgrade plan</Link>}
+
+      {/* USAGE WIDGET */}
+      <div style={{padding:'0 10px 10px'}}>
+        <div style={{background:'var(--bg-subtle)',border:'1px solid var(--border)',borderRadius:12,padding:'12px 14px',marginBottom:6}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <Zap size={11} style={{color:'var(--amber)'}}/>
+              <span style={{fontSize:9,fontWeight:700,fontFamily:'monospace',letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--text-dim)'}}>Credits</span>
+            </div>
+            <span style={{fontSize:10,fontWeight:700,color:pct>=80?'#fb7185':pct>=50?'#fbbf24':'#34d399'}}>{limit-used} left</span>
+          </div>
+          <div style={{height:3,background:'rgba(255,255,255,0.04)',borderRadius:3,overflow:'hidden',marginBottom:8}}>
+            <div style={{height:'100%',width:pct+'%',borderRadius:3,background:pct>=80?'linear-gradient(90deg,#f43f5e,#fb7185)':pct>=50?'linear-gradient(90deg,#f59e0b,#fbbf24)':'linear-gradient(90deg,#6366f1,#8b5cf6)',transition:'width 0.5s'}}/>
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span style={{fontSize:9,color:'var(--text-muted)'}}>{used}/{limit} used</span>
+            <span style={{fontSize:9,fontFamily:'monospace',fontWeight:700,padding:'1px 6px',borderRadius:4,textTransform:'uppercase',letterSpacing:'0.04em',...(plan==='free'?{color:'#a5b4fc',background:'rgba(99,102,241,0.12)',border:'1px solid rgba(99,102,241,0.2)'}:{color:'#fbbf24',background:'rgba(245,158,11,0.12)',border:'1px solid rgba(245,158,11,0.2)'})}}
+            >{plan}</span>
+          </div>
+          {plan==='free'&&<Link href='/settings/billing' style={{display:'block',marginTop:8,fontSize:10,textAlign:'center',color:'#818cf8',textDecoration:'none',padding:'5px',background:'rgba(99,102,241,0.08)',borderRadius:6,border:'1px solid rgba(99,102,241,0.15)',transition:'all 0.15s'}} onMouseEnter={e=>(e.currentTarget.style.background='rgba(99,102,241,0.15)')} onMouseLeave={e=>(e.currentTarget.style.background='rgba(99,102,241,0.08)')}>
+            Upgrade Plan
+          </Link>}
         </div>
-        <button onClick={signOut} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-nf-surface2"><LogOut size={13}/>Sign out</button>
+        <button onClick={signOut} style={{width:'100%',display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,fontSize:11,color:'var(--text-muted)',background:'transparent',border:'1px solid transparent',cursor:'pointer',transition:'all 0.15s'}} onMouseEnter={e=>{e.currentTarget.style.color='#fb7185';e.currentTarget.style.background='rgba(244,63,94,0.06)';e.currentTarget.style.borderColor='rgba(244,63,94,0.15)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-muted)';e.currentTarget.style.background='transparent';e.currentTarget.style.borderColor='transparent'}}>
+          <LogOut size={12}/><span>Sign out</span>
+        </button>
       </div>
     </aside>
   )
