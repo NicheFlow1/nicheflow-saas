@@ -2,116 +2,99 @@
 import{useEffect,useState}from'react'
 import Link from'next/link'
 import{supabase}from'@/lib/supabase/client-singleton'
-import{TrendingUp,Wand2,BookmarkCheck,Zap,ChevronRight,Target,DollarSign}from'lucide-react'
+import{Wand2,TrendingUp,ChevronRight,Activity}from'lucide-react'
 
-function ScoreBadge({score}:{score:number}){
-  const color=score>=80?'text-green-400 bg-green-400/10 border-green-400/20':score>=60?'text-nf-amber bg-nf-amber/10 border-nf-amber/20':'text-red-400 bg-red-400/10 border-red-400/20'
-  return<span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${color}`}>{score}</span>
+function Badge({v,type}:{v:string,type:'go'|'score'}){
+  if(type==='go'){
+    if(v==='GO')return<span className='badge badge-go'>GO</span>
+    if(v==='WAIT')return<span className='badge badge-wait'>WAIT</span>
+    if(v==='NO_GO')return<span className='badge badge-nogo'>NO GO</span>
+    return null
+  }
+  const n=Number(v)
+  return<span className={'badge '+(n>=80?'badge-go':n>=60?'badge-wait':'badge-nogo')}>{v}</span>
 }
 
 export default function DashboardPage(){
   const[profile,setProfile]=useState<any>(null)
-  const[opportunities,setOpportunities]=useState<any[]>([])
-  const[saved,setSaved]=useState<number>(0)
+  const[opps,setOpps]=useState<any[]>([])
+  const[saved,setSaved]=useState(0)
   const[loading,setLoading]=useState(true)
-
   useEffect(()=>{
     supabase.auth.getSession().then(async({data:{session}})=>{
       if(!session)return
       const uid=session.user.id
-      const[{data:pr},{data:opps},{data:sv}]=await Promise.all([
+      const[{data:pr},{data:oo},{data:sv}]=await Promise.all([
         supabase.from('profiles').select('*').eq('id',uid).single(),
-        supabase.from('opportunities').select('*').eq('user_id',uid).order('overall_score',{ascending:false}).limit(5),
+        supabase.from('opportunities').select('*').eq('user_id',uid).order('overall_score',{ascending:false}).limit(8),
         supabase.from('saved_opportunities').select('id',{count:'exact'}).eq('user_id',uid)
       ])
-      setProfile(pr);setOpportunities(opps||[]);setSaved(sv?.length||0);setLoading(false)
+      setProfile(pr);setOpps(oo||[]);setSaved(sv?.length||0);setLoading(false)
     })
   },[])
-
-  if(loading)return<div className="flex items-center justify-center h-64"><div className="text-muted-foreground text-sm">Loading intelligence...</div></div>
-
-  const used=profile?.generations_used||0
-  const limit=profile?.generations_limit||7
-
+  if(loading)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:400,flexDirection:'column',gap:12}}><div className='spinner' style={{width:24,height:24,border:'2px solid var(--border-base)',borderTopColor:'var(--brand-purple)'}}/><p style={{fontSize:11,color:'var(--text-disabled)',fontFamily:'monospace',textTransform:'uppercase',letterSpacing:'0.06em'}}>Loading...</p></div>
+  const used=profile?.generations_used||0,limit=profile?.generations_limit||7
+  const goCount=opps.filter(o=>o.go_no_go==='GO').length
+  const stats=[
+    {label:'Analyzed',val:opps.length,icon:'🎯',bg:'rgba(99,102,241,0.1)',col:'var(--brand-purple)'},
+    {label:'GO Signals',val:goCount,icon:'✅',bg:'rgba(34,197,94,0.1)',col:'var(--success)'},
+    {label:'Saved',val:saved,icon:'🔖',bg:'rgba(236,72,153,0.1)',col:'var(--brand-pink)'},
+    {label:'Credits',val:limit-used,icon:'⚡',bg:'rgba(245,158,11,0.1)',col:'var(--warning)'},
+  ]
   return(
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Intelligence Hub</h1>
-          <p className="text-sm text-muted-foreground">Your opportunity discovery dashboard</p>
-        </div>
-        <Link href="/generator" className="nf-btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm">
-          <Wand2 size={14}/> Find Opportunities
-        </Link>
+    <div>
+      <div className='page-header'><h1>Intelligence Hub</h1><p>Your market discovery command center</p></div>
+      <div className='grid-4' style={{marginBottom:24}}>
+        {stats.map(({label,val,icon,bg,col})=>(
+          <div key={label} className='stat-card'>
+            <div className='stat-icon' style={{background:bg}}><span style={{fontSize:16}}>{icon}</span></div>
+            <div className='stat-value' style={{color:col}}>{val}</div>
+            <div className='stat-label'>{label}</div>
+          </div>
+        ))}
       </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="nf-card p-5">
-          <div className="flex items-center gap-2 mb-2"><TrendingUp size={15} className="text-nf-purple"/><span className="text-xs font-mono text-muted-foreground">ANALYZED</span></div>
-          <div className="text-3xl font-black">{opportunities.length}</div>
-          <div className="text-xs text-muted-foreground mt-1">opportunities</div>
+      <div className='card' style={{marginBottom:20}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderBottom:'1px solid var(--border-base)'}}>
+          <div style={{display:'flex',alignItems:'center',gap:8}}><Activity size={14} style={{color:'var(--brand-purple)'}}/><span style={{fontSize:11,fontWeight:700,color:'var(--brand-purple)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Top Opportunities</span></div>
+          <Link href='/projects' style={{display:'flex',alignItems:'center',gap:4,fontSize:11,color:'var(--text-tertiary)',textDecoration:'none'}}>View all<ChevronRight size={11}/></Link>
         </div>
-        <div className="nf-card p-5">
-          <div className="flex items-center gap-2 mb-2"><BookmarkCheck size={15} className="text-nf-pink"/><span className="text-xs font-mono text-muted-foreground">SAVED</span></div>
-          <div className="text-3xl font-black">{saved}</div>
-          <div className="text-xs text-muted-foreground mt-1">bookmarked</div>
-        </div>
-        <div className="nf-card p-5">
-          <div className="flex items-center gap-2 mb-2"><Zap size={15} className="text-nf-amber"/><span className="text-xs font-mono text-muted-foreground">CREDITS</span></div>
-          <div className="text-3xl font-black">{limit-used}</div>
-          <div className="text-xs text-muted-foreground mt-1">remaining</div>
-        </div>
-      </div>
-
-      {/* Top Opportunities */}
-      <div className="nf-card overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-nf-border">
-          <h2 className="text-sm font-semibold">Top Opportunities</h2>
-          <Link href="/projects" className="text-xs text-nf-purple flex items-center gap-1">View all<ChevronRight size={12}/></Link>
-        </div>
-        {!opportunities.length?(
-          <div className="p-10 text-center">
-            <Wand2 size={32} className="text-nf-purple/30 mx-auto mb-3"/>
-            <p className="text-sm text-muted-foreground mb-4">No opportunities analyzed yet.</p>
-            <Link href="/generator" className="nf-btn-primary text-sm px-4 py-2 rounded-lg">Start discovering</Link>
+        {!opps.length?(
+          <div className='empty-state'>
+            <div className='empty-icon'><Wand2 size={20} style={{color:'var(--brand-purple)',opacity:0.4}}/></div>
+            <p className='empty-title'>No intelligence data yet</p>
+            <p className='empty-desc'>Run your first market analysis</p>
+            <Link href='/generator' className='btn btn-primary btn-sm'>Run Analysis</Link>
           </div>
         ):(
-          <div className="divide-y divide-nf-border">
-            {opportunities.map((o:any)=>(
-              <div key={o.id} className="flex items-center gap-4 px-5 py-4 hover:bg-nf-surface2 transition-colors">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-nf-purple/20 to-nf-pink/20 flex items-center justify-center flex-shrink-0">
-                  <TrendingUp size={16} className="text-nf-purple"/>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold truncate">{o.title}</div>
-                  <div className="text-xs text-muted-foreground truncate">{o.niche}</div>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <div className="text-right hidden sm:block">
-                    <div className="text-xs text-muted-foreground">Market</div>
-                    <div className="text-xs font-medium">{o.market_size?.slice(0,15)||'Emerging'}</div>
+          <div>
+            {opps.map((o:any)=>(
+              <div key={o.id} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 20px',borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
+                <div className='opp-row-icon'><TrendingUp size={15} style={{color:'var(--brand-purple)'}}/></div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:3,flexWrap:'wrap'}}>
+                    <span style={{fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{o.title}</span>
+                    <Badge v={o.go_no_go||''} type='go'/>
                   </div>
-                  <ScoreBadge score={o.overall_score}/>
+                  <div style={{display:'flex',gap:8}}><span className='tag'>{o.lifecycle_stage||'emerging'}</span><span style={{fontSize:10,color:'var(--text-disabled)'}}>{o.niche?.slice(0,35)}</span></div>
                 </div>
+                <Badge v={String(o.overall_score)} type='score'/>
               </div>
             ))}
           </div>
         )}
       </div>
-
-      {/* Quick actions */}
-      <div className="grid grid-cols-2 gap-4">
-        <Link href="/generator" className="nf-card p-5 hover:border-nf-purple/40 transition-colors group">
-          <Wand2 size={20} className="text-nf-purple mb-3"/>
-          <h3 className="font-semibold text-sm">Analyze Opportunity</h3>
-          <p className="text-xs text-muted-foreground mt-1">Deep-dive into any niche or market idea</p>
-        </Link>
-        <Link href="/projects" className="nf-card p-5 hover:border-nf-pink/40 transition-colors group">
-          <BookmarkCheck size={20} className="text-nf-pink mb-3"/>
-          <h3 className="font-semibold text-sm">Saved Opportunities</h3>
-          <p className="text-xs text-muted-foreground mt-1">Review your bookmarked ideas</p>
-        </Link>
+      <div className='grid-3'>
+        {[
+          {href:'/generator',label:'Deep Analysis',desc:'Analyze any market surgically',emoji:'🔬'},
+          {href:'/generator',label:'Discover Niches',desc:'Find 3 hidden opportunities',emoji:'⚡'},
+          {href:'/projects',label:'Intelligence Base',desc:'All analyzed opportunities',emoji:'📊'},
+        ].map(({href,label,desc,emoji})=>(
+          <Link key={label} href={href} className='card card-hover' style={{padding:18,textDecoration:'none',display:'block'}}>
+            <div style={{fontSize:22,marginBottom:10}}>{emoji}</div>
+            <div style={{fontSize:13,fontWeight:700,color:'var(--text-primary)',marginBottom:3}}>{label}</div>
+            <div style={{fontSize:11,color:'var(--text-tertiary)'}}>{desc}</div>
+          </Link>
+        ))}
       </div>
     </div>
   )
