@@ -1,13 +1,14 @@
 'use client'
 import Link from 'next/link'
 import{usePathname}from'next/navigation'
-import{LayoutDashboard,Wand2,FolderOpen,Settings,LogOut,TrendingUp}from'lucide-react'
+import{LayoutDashboard,Wand2,TrendingUp,Settings,LogOut,Radio}from'lucide-react'
 import{supabase}from'@/lib/supabase/client-singleton'
 import type{Profile}from'@/types/database'
 import{PLAN_LIMITS}from'@/types/database'
 
 const NAV=[
   {href:'/dashboard',label:'Dashboard',icon:LayoutDashboard},
+  {href:'/radar',label:'Market Radar',icon:Radio},
   {href:'/generator',label:'Intelligence',icon:Wand2},
   {href:'/projects',label:'Opportunities',icon:TrendingUp},
   {href:'/settings',label:'Settings',icon:Settings},
@@ -35,10 +36,7 @@ export default function Sidebar({profile}:{profile:Profile|null}){
       </nav>
       <div className='sidebar-footer'>
         <div className='usage-widget'>
-          <div className='usage-label'>
-            <span style={{fontSize:10,fontWeight:700,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.04em'}}>{PLAN_LIMITS[plan]?.label||'Free'}</span>
-            <span style={{fontSize:10,color:'var(--text-disabled)'}}>{used}/{limit}</span>
-          </div>
+          <div className='usage-label'><span style={{fontSize:10,fontWeight:700,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.04em'}}>{PLAN_LIMITS[plan]?.label||'Free'}</span><span style={{fontSize:10,color:'var(--text-disabled)'}}>{used}/{limit}</span></div>
           <div className='usage-track'><div className='usage-fill' style={{width:pct+'%'}}/></div>
           {plan==='free'&&<Link href='/settings/billing' style={{display:'block',marginTop:8,fontSize:10,color:'var(--brand-purple)',textDecoration:'none',fontWeight:600}}>Upgrade &rarr;</Link>}
         </div>
