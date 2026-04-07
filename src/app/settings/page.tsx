@@ -1,13 +1,10 @@
 'use client'
 import{useEffect,useState}from'react'
 import{supabase}from'@/lib/supabase/client-singleton'
-import{User,Shield,Zap}from'lucide-react'
-import Link from'next/link'
-
 export default function SettingsPage(){
   const[user,setUser]=useState<any>(null)
   const[profile,setProfile]=useState<any>(null)
-  const[name,setName]=useState('')
+  const[fullName,setFullName]=useState('')
   const[saving,setSaving]=useState(false)
   const[saved,setSaved]=useState(false)
   useEffect(()=>{
@@ -15,55 +12,36 @@ export default function SettingsPage(){
       if(!session)return
       setUser(session.user)
       const{data}=await supabase.from('profiles').select('*').eq('id',session.user.id).single()
-      setProfile(data);setName(data?.full_name||'')
+      setProfile(data);setFullName(data?.full_name||'')
     })
   },[])
   async function save(e:React.FormEvent){
     e.preventDefault();setSaving(true);setSaved(false)
-    await supabase.from('profiles').update({full_name:name}).eq('id',user.id)
+    await supabase.from('profiles').update({full_name:fullName}).eq('id',user.id)
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500)
   }
-  if(!user)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:300}}><div style={{fontSize:11,color:'var(--text-muted)',fontFamily:'monospace'}}>Loading...</div></div>
-  const used=profile?.generations_used||0,limit=profile?.generations_limit||7,plan=profile?.plan||'free'
+  if(!user)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:300}}><div className='spinner' style={{width:20,height:20,border:'2px solid var(--border-base)',borderTopColor:'var(--brand-purple)'}}/></div>
   return(
-    <div style={{maxWidth:540,margin:'0 auto',paddingTop:4}}>
-      <div style={{marginBottom:24}}>
-        <h1 style={{fontSize:22,fontWeight:900,letterSpacing:-0.5,color:'var(--text-primary)',marginBottom:4}}>Settings</h1>
-        <p style={{fontSize:12,color:'var(--text-muted)'}}>Manage your account and preferences</p>
+    <div style={{maxWidth:520}}>
+      <div style={{marginBottom:24}}><h1 style={{fontSize:'1.4rem',fontWeight:800,letterSpacing:'-0.025em'}}>Settings</h1><p style={{fontSize:13,color:'var(--text-tertiary)',marginTop:3}}>Manage your account</p></div>
+      <div className='card' style={{padding:24,marginBottom:12}}>
+        <h3 style={{fontSize:13,fontWeight:700,marginBottom:16}}>Profile</h3>
+        <form onSubmit={save}>
+          <div style={{marginBottom:12}}>
+            <label style={{display:'block',fontSize:11,color:'var(--text-tertiary)',marginBottom:6,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.04em'}}>Email</label>
+            <input value={user.email||''} disabled className='input' style={{opacity:0.5}}/>
+          </div>
+          <div style={{marginBottom:16}}>
+            <label style={{display:'block',fontSize:11,color:'var(--text-tertiary)',marginBottom:6,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.04em'}}>Display Name</label>
+            <input value={fullName} onChange={e=>setFullName(e.target.value)} placeholder='Your name' className='input'/>
+          </div>
+          <button type='submit' disabled={saving} className='btn btn-primary'>{saving?'Saving...':saved?'Saved!':'Save Changes'}</button>
+        </form>
       </div>
-      <div style={{display:'flex',flexDirection:'column',gap:14}}>
-        <div className='intel-card' style={{padding:20}}>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}><User size={13} style={{color:'#818cf8'}}/><span style={{fontSize:10,fontWeight:700,fontFamily:'monospace',letterSpacing:'0.08em',textTransform:'uppercase',color:'#818cf8'}}>Profile</span></div>
-          <form onSubmit={save} style={{display:'flex',flexDirection:'column',gap:12}}>
-            <div>
-              <label style={{display:'block',fontSize:10,fontWeight:600,color:'var(--text-muted)',marginBottom:5,fontFamily:'monospace',textTransform:'uppercase',letterSpacing:'0.05em'}}>Email</label>
-              <input value={user.email||''} disabled className='intel-input' style={{opacity:0.45,cursor:'not-allowed'}}/>
-            </div>
-            <div>
-              <label style={{display:'block',fontSize:10,fontWeight:600,color:'var(--text-muted)',marginBottom:5,fontFamily:'monospace',textTransform:'uppercase',letterSpacing:'0.05em'}}>Full Name</label>
-              <input value={name} onChange={e=>setName(e.target.value)} className='intel-input' placeholder='Your name'/>
-            </div>
-            <button type='submit' disabled={saving} className='btn-primary' style={{alignSelf:'flex-start'}}>{saving?'Saving...':saved?'Saved!':'Save Changes'}</button>
-          </form>
-        </div>
-        <div className='intel-card' style={{padding:20}}>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}><Zap size={13} style={{color:'#fbbf24'}}/><span style={{fontSize:10,fontWeight:700,fontFamily:'monospace',letterSpacing:'0.08em',textTransform:'uppercase',color:'#fbbf24'}}>Plan</span></div>
-          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
-            <div style={{flex:1}}>
-              <div style={{fontSize:14,fontWeight:800,color:'var(--text-primary)',marginBottom:2,textTransform:'capitalize'}}>{plan} Plan</div>
-              <div style={{fontSize:11,color:'var(--text-muted)'}}>{used} of {limit} analyses used</div>
-            </div>
-            <div style={{fontSize:10,fontWeight:700,fontFamily:'monospace',padding:'4px 10px',borderRadius:6,textTransform:'uppercase',letterSpacing:'0.05em',...(plan==='free'?{color:'#818cf8',background:'rgba(99,102,241,0.1)',border:'1px solid rgba(99,102,241,0.2)'}:{color:'#fbbf24',background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.2)'})}}>{plan}</div>
-          </div>
-          <div style={{height:4,background:'rgba(255,255,255,0.04)',borderRadius:4,overflow:'hidden',marginBottom:14}}>
-            <div style={{height:'100%',width:Math.min((used/limit)*100,100)+'%',background:'linear-gradient(90deg,#6366f1,#8b5cf6)',borderRadius:4,transition:'width 0.5s'}}/>
-          </div>
-          {plan==='free'&&<Link href='/settings/billing' className='btn-primary' style={{display:'inline-flex',textDecoration:'none'}}><Zap size={13}/>Upgrade Plan</Link>}
-        </div>
-        <div className='intel-card' style={{padding:20}}>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}><Shield size={13} style={{color:'#34d399'}}/><span style={{fontSize:10,fontWeight:700,fontFamily:'monospace',letterSpacing:'0.08em',textTransform:'uppercase',color:'#34d399'}}>Security</span></div>
-          <div style={{fontSize:11,color:'var(--text-muted)',lineHeight:1.5}}>Your account is secured with email and password authentication. Contact support to change your email address.</div>
-        </div>
+      <div className='card' style={{padding:24}}>
+        <h3 style={{fontSize:13,fontWeight:700,marginBottom:6}}>Plan</h3>
+        <p style={{fontSize:12,color:'var(--text-tertiary)',marginBottom:16}}>Plan: <strong style={{color:'var(--text-primary)',textTransform:'capitalize'}}>{profile?.plan||'free'}</strong></p>
+        <a href='/settings/billing' className='btn btn-ghost'>Manage Billing</a>
       </div>
     </div>
   )
