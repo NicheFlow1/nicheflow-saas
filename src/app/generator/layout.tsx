@@ -4,7 +4,7 @@ import{useRouter}from'next/navigation'
 import{supabase}from'@/lib/supabase/client-singleton'
 import Sidebar from'@/components/layout/Sidebar'
 import Topbar from'@/components/layout/Topbar'
-export default function GeneratorLayout({children}:{children:React.ReactNode}){
+export default function AppLayout({children}:{children:React.ReactNode}){
   const router=useRouter()
   const[user,setUser]=useState<any>(null)
   const[profile,setProfile]=useState<any>(null)
@@ -17,13 +17,17 @@ export default function GeneratorLayout({children}:{children:React.ReactNode}){
       setProfile(data);setReady(true)
     })
   },[])
-  if(!ready)return<div className="min-h-screen bg-nf-bg flex items-center justify-center"><div className="text-muted-foreground text-sm">Loading...</div></div>
+  if(!ready)return(
+    <div style={{minHeight:'100vh',background:'var(--bg-base)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div className='spinner' style={{width:24,height:24,border:'2px solid var(--border-base)',borderTopColor:'var(--brand-purple)'}}/>
+    </div>
+  )
   return(
-    <div className="flex h-screen bg-nf-bg overflow-hidden">
+    <div className='app-shell'>
       <Sidebar profile={profile}/>
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className='main-wrap'>
         <Topbar user={user} profile={profile}/>
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8">{children}</main>
+        <main className='page-content'>{children}</main>
       </div>
     </div>
   )
