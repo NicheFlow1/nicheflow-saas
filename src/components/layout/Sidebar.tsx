@@ -1,16 +1,16 @@
 'use client'
 import Link from 'next/link'
 import{usePathname}from'next/navigation'
-import{LayoutDashboard,Wand2,TrendingUp,Settings,LogOut,Radio}from'lucide-react'
+import{LayoutDashboard,Search,TrendingUp,Bookmark,Settings,LogOut,Radio}from'lucide-react'
 import{supabase}from'@/lib/supabase/client-singleton'
 import type{Profile}from'@/types/database'
 import{PLAN_LIMITS}from'@/types/database'
 
 const NAV=[
   {href:'/dashboard',label:'Dashboard',icon:LayoutDashboard},
+  {href:'/validate',label:'Validate Trend',icon:Search},
   {href:'/radar',label:'Market Radar',icon:Radio},
-  {href:'/generator',label:'Intelligence',icon:Wand2},
-  {href:'/projects',label:'Opportunities',icon:TrendingUp},
+  {href:'/projects',label:'Past Reports',icon:TrendingUp},
   {href:'/settings',label:'Settings',icon:Settings},
 ]
 
@@ -25,7 +25,7 @@ export default function Sidebar({profile}:{profile:Profile|null}){
     <aside className='sidebar'>
       <div className='sidebar-logo'>
         <div className='logo-mark'>NF</div>
-        <div><div className='logo-text'>NicheFlow</div><div className='logo-badge'>Intelligence OS</div></div>
+        <div><div className='logo-text'>NicheFlow</div><div className='logo-badge'>Trend Validator</div></div>
       </div>
       <nav className='nav-section'>
         <div className='nav-label'>Navigation</div>
