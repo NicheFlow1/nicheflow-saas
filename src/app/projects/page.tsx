@@ -1,68 +1,66 @@
 'use client'
 import{useEffect,useState}from'react'
 import{supabase}from'@/lib/supabase/client-singleton'
-import{TrendingUp,Trash2,Search}from'lucide-react'
+import{Search,Database,Trash2,TrendingUp}from'lucide-react'
 import Link from'next/link'
-function ScoreBadge({s}:{s:number}){const c=s>=80?'badge-go':s>=60?'badge-wait':'badge-nogo';return<span className={'badge '+c}>{s}</span>}
+
 export default function ProjectsPage(){
-  const[opps,setOpps]=useState<any[]>([])
+  const[reports,setReports]=useState<any[]>([])
   const[loading,setLoading]=useState(true)
-  const[filter,setFilter]=useState('all')
   const[search,setSearch]=useState('')
+  const[filter,setFilter]=useState('all')
+
   useEffect(()=>{
     supabase.auth.getSession().then(async({data:{session}})=>{
       if(!session)return
-      const{data}=await supabase.from('opportunities').select('*').eq('user_id',session.user.id).order('overall_score',{ascending:false})
-      setOpps(data||[]);setLoading(false)
+      const{data}=await supabase.from('validation_reports').select('*').eq('user_id',session.user.id).order('created_at',{ascending:false})
+      setReports(data||[]);setLoading(false)
     })
   },[])
-  const filtered=opps.filter(o=>{
-    const ms=!search||o.title?.toLowerCase().includes(search.toLowerCase())||o.niche?.toLowerCase().includes(search.toLowerCase())
-    const mf=filter==='all'||(filter==='go'&&o.go_no_go==='GO')||(filter==='high'&&o.overall_score>=70)
+
+  const filtered=reports.filter(r=>{
+    const ms=!search||r.keyword?.toLowerCase().includes(search.toLowerCase())
+    const mf=filter==='all'||(filter==='go'&&r.signal==='GO')||(filter==='real'&&r.data_sources?.some((s:string)=>s.includes('Google')))
     return ms&&mf
   })
-  async function del(id:string){await supabase.from('opportunities').delete().eq('id',id);setOpps(o=>o.filter(x=>x.id!==id))}
+
+  async function del(id:string){await supabase.from('validation_reports').delete().eq('id',id);setReports(r=>r.filter(x=>x.id!==id))}
+
   if(loading)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:300}}><div className='spinner' style={{width:20,height:20,border:'2px solid var(--border-base)',borderTopColor:'var(--brand-purple)'}}/></div>
+
   return(
     <div>
       <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:24}}>
-        <div><h1 style={{fontSize:'1.4rem',fontWeight:800,letterSpacing:'-0.025em',color:'var(--text-primary)'}}>Intelligence Base</h1><p style={{fontSize:13,color:'var(--text-tertiary)',marginTop:3}}>{opps.length} opportunities analyzed</p></div>
-        <Link href='/generator' className='btn btn-primary'>+ Analyze</Link>
+        <div><h1 style={{fontSize:'1.4rem',fontWeight:900,letterSpacing:'-0.025em'}}>Validation Reports</h1><p style={{fontSize:13,color:'var(--text-tertiary)',marginTop:3}}>{reports.length} reports</p></div>
+        <Link href='/validate' className='btn btn-primary'><Search size={13}/>New Validation</Link>
       </div>
       <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
-        <div className='search-wrap' style={{flex:1,minWidth:200}}>
-          <Search size={12} className='search-icon'/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder='Search opportunities...' className='input search-input'/>
-        </div>
+        <div style={{flex:1,minWidth:200,position:'relative'}}><Search size={12} style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:'var(--text-disabled)',pointerEvents:'none'}}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder='Search reports...' className='input' style={{paddingLeft:34}}/></div>
         <div className='filter-pills'>
-          {([['all','All'],['go','GO Signals'],['high','High Score']] as [string,string][]).map(([f,l])=>(
+          {([['all','All'],['go','GO Signals'],['real','Real Data']] as [string,string][]).map(([f,l])=>(
             <button key={f} onClick={()=>setFilter(f)} className={'filter-pill'+(filter===f?' active':'')}>{l}</button>
           ))}
         </div>
       </div>
       {!filtered.length?(
-        <div className='card'><div className='empty-state'><div className='empty-icon'><TrendingUp size={20} style={{color:'var(--brand-purple)',opacity:0.4}}/></div><p className='empty-title'>{search?'No matches':'No opportunities yet'}</p><p className='empty-desc'>{filter!=='all'?'Try a different filter':'Analyze a niche to get started'}</p><Link href='/generator' className='btn btn-primary btn-sm'>Start Analyzing</Link></div></div>
+        <div className='card'><div className='empty-state'><p className='empty-title'>{search?'No matches':'No reports yet'}</p><p className='empty-desc'>Validate a keyword to build your report history</p><Link href='/validate' className='btn btn-primary btn-sm'>Validate Now</Link></div></div>
       ):(
-        <div>{filtered.map(o=>(
-          <div key={o.id} className='opp-row'>
-            <div className='opp-row-icon'><TrendingUp size={16} style={{color:'var(--brand-purple)'}}/></div>
+        <div>{filtered.map((r:any)=>(
+          <div key={r.id} className='opp-row'>
+            <div className='opp-row-icon'><TrendingUp size={15} style={{color:'var(--brand-purple)'}}/></div>
             <div className='opp-row-meta'>
               <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4,flexWrap:'wrap'}}>
-                <span className='opp-row-title'>{o.title}</span>
-                <ScoreBadge s={o.overall_score}/>
-                {o.go_no_go==='GO'&&<span className='badge badge-go'>GO</span>}
-                <span className='tag'>{o.category}</span>
+                <span className='opp-row-title'>{r.keyword}</span>
+                <span className={'badge '+(r.signal==='GO'?'badge-go':r.signal==='WAIT'?'badge-wait':'badge-nogo')}>{r.signal}</span>
+                {r.data_sources?.some((s:string)=>s.includes('Google'))&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:3,background:'rgba(34,197,94,0.08)',color:'var(--success)',border:'1px solid rgba(34,197,94,0.15)',fontFamily:'monospace',fontWeight:600}}>REAL DATA</span>}
               </div>
-              <p style={{fontSize:11,color:'var(--text-tertiary)',marginBottom:6,overflow:'hidden',textOverflow:'ellipsis',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{o.summary}</p>
-              <div style={{display:'flex',gap:14}}>
-                <span style={{fontSize:10,color:'var(--text-disabled)'}}>Demand <span style={{color:'var(--brand-purple)',fontWeight:700}}>{o.demand_score}</span></span>
-                <span style={{fontSize:10,color:'var(--text-disabled)'}}>Low Comp <span style={{color:'var(--success)',fontWeight:700}}>{o.competition_score}</span></span>
-                <span style={{fontSize:10,color:'var(--text-disabled)'}}>Stage <span style={{color:'var(--warning)',fontWeight:700,textTransform:'capitalize'}}>{o.lifecycle_stage}</span></span>
+              <div style={{display:'flex',gap:12}}>
+                <span style={{fontSize:10,color:'var(--text-disabled)'}}>Score <span style={{fontWeight:700,color:'var(--text-secondary)'}}>{r.overall_score||0}</span></span>
+                <span style={{fontSize:10,color:'var(--text-disabled)'}}>Trend <span style={{fontWeight:700,color:'var(--brand-purple)'}}>{r.trend_score||0}</span></span>
+                <span style={{fontSize:10,color:'var(--text-disabled)'}}>{new Date(r.created_at).toLocaleDateString()}</span>
               </div>
             </div>
-            <div style={{display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
-              <button onClick={()=>del(o.id)} className='btn btn-danger btn-sm' title='Delete'><Trash2 size={12}/></button>
-            </div>
+            <div style={{flexShrink:0}}><button onClick={()=>del(r.id)} className='btn btn-danger btn-sm'><Trash2 size={12}/></button></div>
           </div>
         ))}</div>
       )}
