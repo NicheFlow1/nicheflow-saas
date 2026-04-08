@@ -2,40 +2,90 @@
 import{useState}from'react'
 import Link from'next/link'
 import{supabase}from'@/lib/supabase/client-singleton'
+import{Zap,AlertCircle}from'lucide-react'
+
 export default function LoginPage(){
   const[email,setEmail]=useState('')
   const[password,setPassword]=useState('')
-  const[error,setError]=useState('')
   const[loading,setLoading]=useState(false)
+  const[error,setError]=useState('')
+
   async function handleLogin(e:React.FormEvent){
-    e.preventDefault();setLoading(true);setError('')
+    e.preventDefault()
+    setLoading(true);setError('')
     const{error:err}=await supabase.auth.signInWithPassword({email,password})
     if(err){setError(err.message);setLoading(false);return}
     window.location.replace('/dashboard')
   }
+
   return(
-    <div className="min-h-screen bg-nf-bg flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-nf-purple to-nf-pink flex items-center justify-center text-white font-bold font-mono text-sm">NF</div>
-            <span className="font-bold text-lg">NicheFlow</span>
-          </Link>
-          <h1 className="text-2xl font-bold">Welcome back</h1>
+    <div style={{minHeight:'100vh',background:'var(--bg-base)',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+      {/* bg grid */}
+      <div style={{position:'fixed',inset:0,backgroundImage:'linear-gradient(rgba(99,102,241,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,0.03) 1px,transparent 1px)',backgroundSize:'48px 48px',pointerEvents:'none'}}/>
+      {/* glow */}
+      <div style={{position:'fixed',top:'20%',left:'50%',transform:'translateX(-50%)',width:600,height:600,borderRadius:'50%',background:'radial-gradient(ellipse,rgba(99,102,241,0.07) 0%,transparent 65%)',pointerEvents:'none'}}/>
+      
+      <div style={{width:'100%',maxWidth:400,position:'relative'}}>
+        {/* Logo */}
+        <div style={{textAlign:'center',marginBottom:36}}>
+          <div style={{width:44,height:44,borderRadius:14,background:'linear-gradient(135deg,#6366f1,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:900,color:'white',margin:'0 auto 14px',boxShadow:'0 8px 24px rgba(99,102,241,0.35)'}}>
+            NF
+          </div>
+          <h1 style={{fontSize:'1.5rem',fontWeight:900,letterSpacing:'-0.03em',color:'var(--text-primary)',marginBottom:6}}>Welcome back</h1>
+          <p style={{fontSize:13,color:'var(--text-tertiary)'}}>Sign in to your NicheFlow account</p>
         </div>
-        <div className="nf-card p-8">
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" required
-              className="w-full bg-nf-surface2 border border-nf-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-nf-purple/60"/>
-            <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" required
-              className="w-full bg-nf-surface2 border border-nf-border rounded-lg px-4 py-2.5 text-sm focus:outline-none"/>
-            {error&&<p className="text-red-400 text-xs">{error}</p>}
-            <button type="submit" disabled={loading} className="w-full nf-btn-primary py-2.5 rounded-lg disabled:opacity-50">
-              {loading?'Signing in...':'Sign in'}
+
+        {/* Card */}
+        <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-base)',borderRadius:'var(--radius-2xl)',padding:28}}>
+          <form onSubmit={handleLogin}>
+            <div style={{marginBottom:14}}>
+              <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:6}}>Email</label>
+              <input
+                type='email'
+                value={email}
+                onChange={e=>setEmail(e.target.value)}
+                placeholder='you@example.com'
+                required
+                className='input'
+                style={{fontSize:14}}
+              />
+            </div>
+            <div style={{marginBottom:20}}>
+              <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:6}}>Password</label>
+              <input
+                type='password'
+                value={password}
+                onChange={e=>setPassword(e.target.value)}
+                placeholder='••••••••'
+                required
+                className='input'
+                style={{fontSize:14}}
+              />
+            </div>
+            {error&&(
+              <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',background:'var(--surface-nogo)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'var(--radius-md)',marginBottom:16}}>
+                <AlertCircle size={13} style={{color:'var(--danger)',flexShrink:0}}/>
+                <span style={{fontSize:12,color:'var(--danger)'}}>{error}</span>
+              </div>
+            )}
+            <button
+              type='submit'
+              disabled={loading||!email||!password}
+              className='btn btn-grad'
+              style={{width:'100%',justifyContent:'center',padding:'11px 20px',fontSize:14,fontWeight:700,borderRadius:'var(--radius-lg)'}}
+            >
+              {loading
+                ?<><div className='spinner' style={{width:15,height:15,border:'2px solid rgba(255,255,255,0.3)',borderTopColor:'white'}}/>Signing in...</>
+                :<><Zap size={14}/>Sign in</>
+              }
             </button>
           </form>
-          <p className="text-center text-sm text-muted-foreground mt-6">No account? <Link href="/auth/signup" className="text-nf-purple">Create one free</Link></p>
         </div>
+
+        <p style={{textAlign:'center',fontSize:13,color:'var(--text-tertiary)',marginTop:20}}>
+          No account?{' '}
+          <Link href='/auth/signup' style={{color:'var(--brand-purple)',fontWeight:600,textDecoration:'none'}}>Create one free</Link>
+        </p>
       </div>
     </div>
   )
