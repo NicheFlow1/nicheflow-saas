@@ -1,1 +1,4 @@
-export default function L({children}:{children:React.ReactNode}){return<>{children}</>}
+import React from 'react';
+export default function Layout({children}:{children:React.ReactNode}){
+  return <>{children}</>;
+}
