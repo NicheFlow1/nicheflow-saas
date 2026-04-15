@@ -1,110 +1,179 @@
-import Link from 'next/link'
+'use client';
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { Zap, TrendingUp, CheckCircle, ArrowRight, Radio, Sparkles, BarChart3, Users } from 'lucide-react';
 
-export default function LandingPage(){
-  const features=[
-    {icon:'🧠',title:'ARIA Intelligence Engine',desc:'Powered by Llama 3.3 70B — our AI analyst fuses YC partner instincts, a16z market sizing, and Reddit trend spotting into one surgical analysis.'},
-    {icon:'⚡',title:'Trend Flow Detection',desc:'Know where a trend is in its lifecycle. Birth, emerging, growing, peaking, saturating. Enter at the right moment, not when everyone else does.'},
-    {icon:'🎯',title:'GO / NO GO Decisions',desc:'Every analysis returns a clear binary signal. No more guessing. Demand, competition, timing, virality, longevity — all scored 0-100.'},
-    {icon:'🗺️',title:'Competition X-Ray',desc:'Map every incumbent, their core weaknesses, the white spaces they miss, and your exact positioning angle to outcompete them.'},
-    {icon:'💰',title:'Monetization Intelligence',desc:'Not just how to make money — which model, what price psychology, LTV/CAC estimates, full upsell stack, and first revenue in 30 days.'},
-    {icon:'🚀',title:'Execution Pipeline',desc:'From MVP definition to Week 1-2 actions through Month 4-6 milestones. A complete roadmap, not vague advice.'},
-  ]
-  const stats=[
-    {val:'7 Dimensions',label:'Scoring system'},
-    {val:'4 Modes',label:'Analysis types'},
-    {val:'5 Platforms',label:'Trend signals'},
-    {val:'30 Days',label:'First revenue path'},
-  ]
-  return(
-    <div style={{minHeight:'100vh',background:'var(--bg-base)',color:'var(--text-primary)',fontFamily:"-apple-system,'Inter',sans-serif"}}>
-      {/* NAV */}
-      <nav style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 40px',borderBottom:'1px solid var(--border-base)',position:'sticky',top:0,background:'rgba(5,5,8,0.85)',backdropFilter:'blur(12px)',zIndex:100}}>
-        <div style={{display:'flex',alignItems:'center',gap:10}}>
-          <div style={{width:28,height:28,borderRadius:8,background:'linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:900,color:'white'}}>
-            NF
+export default function LandingPage() {
+  const features = [
+    { icon: Radio, title: 'Daily Market Briefings', desc: 'ARIA scans 5+ trending markets every day using real Google Trends data and delivers your GO signal report.' },
+    { icon: Zap, title: 'Complete Starter Kits', desc: 'One click builds your full kit: product ideas, 7-day action plan, landing page copy, Reddit communities, revenue path.' },
+    { icon: TrendingUp, title: 'Real Trend Validation', desc: 'Validate any keyword with 5-year Google Trends charts, 12-month growth scores, and AI opportunity analysis.' },
+    { icon: BarChart3, title: 'Market Radar', desc: 'Track emerging niches across 6 categories. Watch signals move from WAIT to GO before the crowd catches on.' },
+    { icon: Users, title: 'Watchlist Tracking', desc: 'Add any market to your watchlist. Get notified when signals shift so you act at the right moment.' },
+    { icon: Sparkles, title: 'NVIDIA AI Analysis', desc: 'Every report is grounded in real data. NVIDIA AI interprets trends, finds gaps, spots opportunities.' },
+  ];
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#080810', color: 'white' }}>
+      <nav style={{ position: 'sticky', top: 0, zIndex: 50, borderBottom: '1px solid rgba(255,255,255,.06)', background: 'rgba(8,8,16,.9)', backdropFilter: 'blur(12px)', padding: '0 24px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px rgba(99,102,241,.4)' }}>
+              <Zap size={17} style={{ color: 'white' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 900, letterSpacing: '-.025em', color: 'white' }}>NicheFlow</div>
+              <div style={{ fontSize: 8, fontWeight: 800, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '.1em', marginTop: -2 }}>AI SCOUT</div>
+            </div>
           </div>
-          <span style={{fontSize:14,fontWeight:700}}>NicheFlow</span>
-          <span style={{fontSize:9,fontWeight:700,color:'var(--text-disabled)',textTransform:'uppercase',letterSpacing:'0.08em',background:'var(--bg-muted)',padding:'2px 6px',borderRadius:4,border:'1px solid var(--border-base)'}}>Intelligence OS</span>
-        </div>
-        <div style={{display:'flex',gap:10}}>
-          <Link href='/auth/login' style={{display:'flex',alignItems:'center',padding:'7px 14px',borderRadius:8,fontSize:13,fontWeight:600,color:'var(--text-secondary)',textDecoration:'none',border:'1px solid var(--border-base)',background:'transparent',transition:'all 0.12s'}}>Log in</Link>
-          <Link href='/auth/signup' style={{display:'flex',alignItems:'center',padding:'7px 16px',borderRadius:8,fontSize:13,fontWeight:700,color:'white',textDecoration:'none',background:'var(--brand-purple)',transition:'all 0.12s'}}>Get Started Free</Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Link href="/auth/login" style={{ fontSize: 13, color: 'rgba(255,255,255,.5)', textDecoration: 'none', padding: '8px 14px', borderRadius: 8 }}>Sign in</Link>
+            <Link href="/auth/signup" style={{ fontSize: 13, fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', padding: '8px 18px', borderRadius: 8, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+              Start Free <ArrowRight size={13} />
+            </Link>
+          </div>
         </div>
       </nav>
 
-      {/* HERO */}
-      <section style={{maxWidth:760,margin:'0 auto',padding:'96px 24px 80px',textAlign:'center'}}>
-        <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 12px',borderRadius:99,background:'rgba(99,102,241,0.08)',border:'1px solid rgba(99,102,241,0.2)',fontSize:11,fontWeight:600,color:'var(--brand-purple)',marginBottom:28}}>
-          <span>⚡</span> Market Intelligence OS — Powered by ARIA
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '90px 24px 60px', textAlign: 'center' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', background: 'rgba(99,102,241,.12)', border: '1px solid rgba(99,102,241,.3)', borderRadius: 99, fontSize: 11, fontWeight: 700, color: '#a78bfa', marginBottom: 28, textTransform: 'uppercase', letterSpacing: '.07em' }}>
+          <Zap size={10} /> AI-Powered Market Intelligence
         </div>
-        <h1 style={{fontSize:'clamp(2rem,5vw,3.2rem)',fontWeight:900,letterSpacing:'-0.04em',lineHeight:1.1,marginBottom:20}}>
-          Find winning opportunities
-          <span style={{display:'block',background:'linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>
-            before everyone else does
-          </span>
+        <h1 style={{ fontSize: 'clamp(2.2rem,5.5vw,4rem)', fontWeight: 900, letterSpacing: '-.04em', lineHeight: 1.06, marginBottom: 22, maxWidth: 820, margin: '0 auto 22px' }}>
+          Find your next{' '}
+          <span style={{ background: 'linear-gradient(135deg,#6366f1,#a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>profitable niche</span>
+          {' '}before everyone else
         </h1>
-        <p style={{fontSize:16,color:'var(--text-secondary)',lineHeight:1.7,maxWidth:580,margin:'0 auto 40px'}}>
-          NicheFlow is a full market intelligence OS. Detect trends before they peak, score opportunities with 7-dimensional AI analysis, map competition, and get a complete execution roadmap — in seconds.
+        <p style={{ fontSize: 'clamp(15px,2vw,18px)', color: 'rgba(255,255,255,.5)', lineHeight: 1.75, maxWidth: 580, margin: '0 auto 40px' }}>
+          NicheFlow scans real Google Trends data daily, finds GO-signal markets, and builds you a complete starter kit in one click.
         </p>
-        <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
-          <Link href='/auth/signup' style={{display:'inline-flex',alignItems:'center',gap:8,padding:'13px 28px',borderRadius:12,fontSize:14,fontWeight:700,color:'white',textDecoration:'none',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',boxShadow:'0 4px 20px rgba(99,102,241,0.35)'}}>
-            Start for free &rarr;
-          </Link>
-          <Link href='/auth/login' style={{display:'inline-flex',alignItems:'center',gap:8,padding:'13px 24px',borderRadius:12,fontSize:14,fontWeight:600,color:'var(--text-secondary)',textDecoration:'none',border:'1px solid var(--border-base)',background:'var(--bg-elevated)'}}>
-            Sign in
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 18 }}>
+          <Link href="/auth/signup" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '15px 30px', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white', borderRadius: 12, fontSize: 15, fontWeight: 800, textDecoration: 'none', boxShadow: '0 8px 32px rgba(99,102,241,.35)' }}>
+            <Zap size={16} /> Get Your Free Briefing <ArrowRight size={15} />
           </Link>
         </div>
-        <p style={{fontSize:11,color:'var(--text-disabled)',marginTop:16}}>No credit card required &mdash; 7 free analyses</p>
-      </section>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,.25)' }}>7 free generations. No credit card required.</div>
+      </div>
 
-      {/* STATS */}
-      <section style={{maxWidth:700,margin:'0 auto',padding:'0 24px 80px'}}>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
-          {stats.map(({val,label})=>(
-            <div key={val} style={{background:'var(--bg-elevated)',border:'1px solid var(--border-base)',borderRadius:14,padding:'20px 16px',textAlign:'center'}}>
-              <div style={{fontSize:'1.4rem',fontWeight:900,letterSpacing:'-0.03em',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>{val}</div>
-              <div style={{fontSize:10,color:'var(--text-tertiary)',marginTop:4,textTransform:'uppercase',letterSpacing:'0.04em'}}>{label}</div>
+      <div style={{ maxWidth: 900, margin: '0 auto 80px', padding: '0 24px' }}>
+        <div style={{ background: 'linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.04))', border: '1px solid rgba(99,102,241,.18)', borderRadius: 22, padding: '28px 32px' }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Radio size={9} /> Live Example - ARIA Daily Briefing
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12 }}>
+            {[
+              { market: 'AI Productivity Tools', score: 84, why: 'Search volume up 340% in 90 days. Low competition in B2B segment.' },
+              { market: 'Longevity Supplements', score: 78, why: 'Biohacking trend accelerating. Weak digital presence in a $4B market.' },
+              { market: 'ADHD Coaching Apps', score: 71, why: 'Post-pandemic diagnosis surge. Underserved mobile-first demographic.' },
+            ].map((opp, i) => (
+              <div key={i} style={{ background: 'rgba(255,255,255,.04)', borderRadius: 14, padding: '16px', border: '1px solid rgba(255,255,255,.06)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>{opp.market}</span>
+                  <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: 'rgba(34,197,94,.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,.25)', flexShrink: 0, marginLeft: 8 }}>GO</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', lineHeight: 1.5, marginBottom: 10 }}>{opp.why}</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: '#22c55e' }}>{opp.score}<span style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', fontWeight: 400 }}>/100</span></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 1100, margin: '0 auto 80px', padding: '0 24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>How It Works</div>
+          <h2 style={{ fontSize: 'clamp(1.6rem,3vw,2.5rem)', fontWeight: 900, letterSpacing: '-.035em', color: 'white' }}>From zero to launched in 7 days</h2>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16 }}>
+          {[
+            { n: '01', t: 'Get Your Briefing', d: 'Click one button. ARIA scans trending markets using real Google Trends API data and finds your top GO opportunities.' },
+            { n: '02', t: 'Build Your Kit', d: 'Pick an opportunity. One click generates your complete starter kit with everything you need to launch in 7 days.' },
+            { n: '03', t: 'Launch Fast', d: 'Use the landing page copy, Reddit communities, and content hooks to get your first customers this week.' },
+          ].map((s, i) => (
+            <div key={i} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 18, padding: 28, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ fontSize: 52, fontWeight: 900, color: 'rgba(99,102,241,.07)', position: 'absolute', top: 10, right: 18, lineHeight: 1 }}>{s.n}</div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Step {s.n}</div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: 'white', marginBottom: 10 }}>{s.t}</div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', lineHeight: 1.65 }}>{s.d}</div>
             </div>
           ))}
         </div>
-      </section>
+      </div>
 
-      {/* FEATURES */}
-      <section style={{maxWidth:900,margin:'0 auto',padding:'0 24px 100px'}}>
-        <div style={{textAlign:'center',marginBottom:48}}>
-          <h2 style={{fontSize:'1.75rem',fontWeight:800,letterSpacing:'-0.03em',marginBottom:12}}>Everything you need to find your edge</h2>
-          <p style={{fontSize:14,color:'var(--text-secondary)'}}>One platform. Total market clarity.</p>
+      <div style={{ maxWidth: 1100, margin: '0 auto 80px', padding: '0 24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Features</div>
+          <h2 style={{ fontSize: 'clamp(1.6rem,3vw,2.5rem)', fontWeight: 900, letterSpacing: '-.035em', color: 'white' }}>Everything to find and launch your niche</h2>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16}}>
-          {features.map(({icon,title,desc})=>(
-            <div key={title} style={{background:'var(--bg-elevated)',border:'1px solid var(--border-base)',borderRadius:16,padding:22,transition:'border-color 0.15s'}}>
-              <div style={{fontSize:24,marginBottom:12}}>{icon}</div>
-              <h3 style={{fontSize:13,fontWeight:700,marginBottom:6}}>{title}</h3>
-              <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.65}}>{desc}</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14 }}>
+          {features.map((f, i) => (
+            <div key={i} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 16, padding: '22px 24px', display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+              <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(99,102,241,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <f.icon size={18} style={{ color: '#8b5cf6' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'white', marginBottom: 6 }}>{f.title}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', lineHeight: 1.65 }}>{f.desc}</div>
+              </div>
             </div>
           ))}
         </div>
-      </section>
+      </div>
 
-      {/* CTA */}
-      <section style={{maxWidth:560,margin:'0 auto',padding:'0 24px 100px',textAlign:'center'}}>
-        <div style={{background:'linear-gradient(135deg,rgba(99,102,241,0.06),rgba(139,92,246,0.06))',border:'1px solid rgba(99,102,241,0.15)',borderRadius:24,padding:'48px 40px'}}>
-          <h2 style={{fontSize:'1.6rem',fontWeight:800,letterSpacing:'-0.03em',marginBottom:12}}>Ready to find your next big opportunity?</h2>
-          <p style={{fontSize:13,color:'var(--text-tertiary)',marginBottom:28,lineHeight:1.6}}>Join thousands of founders, marketers, and builders who use NicheFlow to find winning markets before the crowd.</p>
-          <Link href='/auth/signup' style={{display:'inline-flex',alignItems:'center',gap:8,padding:'14px 32px',borderRadius:12,fontSize:15,fontWeight:700,color:'white',textDecoration:'none',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',boxShadow:'0 4px 24px rgba(99,102,241,0.35)'}}>
-            Start for free &rarr;
+      <div style={{ maxWidth: 1100, margin: '0 auto 80px', padding: '0 24px' }}>
+        <div style={{ background: 'linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.04))', border: '1px solid rgba(99,102,241,.2)', borderRadius: 24, padding: '44px 48px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 9, fontWeight: 800, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 14 }}>Starter Kit Includes</div>
+              <h2 style={{ fontSize: 'clamp(1.4rem,2.5vw,2rem)', fontWeight: 900, letterSpacing: '-.03em', marginBottom: 22, color: 'white' }}>Everything to launch in one week</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {['Real Google Trends validation score','Product ideas with pricing and build plan','Complete landing page copy (headline, bullets, CTA)','7-day step-by-step action plan','Reddit communities to post in','Viral content hooks for each platform','30-day revenue estimate and price point'].map((item, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0, marginTop: 2 }} />
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', lineHeight: 1.5 }}>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { label: 'Market Score', val: '84/100 GO', color: '#22c55e' },
+                { label: 'Product Idea', val: 'AI Productivity App', color: 'white' },
+                { label: 'Price Point', val: '$29/month SaaS', color: 'white' },
+                { label: '30-Day Revenue Est.', val: '$2,400 - $4,800', color: '#22c55e' },
+                { label: 'First Action', val: 'Post in r/productivity today', color: '#8b5cf6' },
+              ].map((item, i) => (
+                <div key={i} style={{ background: 'rgba(255,255,255,.04)', borderRadius: 12, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(255,255,255,.06)' }}>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{item.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: item.color }}>{item.val}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 640, margin: '0 auto 80px', padding: '0 24px', textAlign: 'center' }}>
+        <div style={{ background: 'linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.06))', border: '1px solid rgba(99,102,241,.22)', borderRadius: 24, padding: '52px 36px' }}>
+          <div style={{ fontSize: 32, marginBottom: 18 }}>🚀</div>
+          <h2 style={{ fontSize: 'clamp(1.5rem,3vw,2.2rem)', fontWeight: 900, letterSpacing: '-.035em', marginBottom: 14, color: 'white' }}>Start finding GO signals today</h2>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,.45)', marginBottom: 30, lineHeight: 1.7 }}>Join founders using NicheFlow to find and validate profitable niches before they go mainstream.</p>
+          <Link href="/auth/signup" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '15px 34px', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white', borderRadius: 12, fontSize: 15, fontWeight: 800, textDecoration: 'none', boxShadow: '0 8px 32px rgba(99,102,241,.4)' }}>
+            <Zap size={16} /> Get Started Free <ArrowRight size={15} />
           </Link>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.2)', marginTop: 16 }}>7 free generations. No credit card required.</div>
         </div>
-      </section>
+      </div>
 
-      {/* FOOTER */}
-      <footer style={{borderTop:'1px solid var(--border-base)',padding:'24px 40px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <div style={{fontSize:12,color:'var(--text-disabled)'}}>&copy; 2025 NicheFlow Intelligence OS</div>
-        <div style={{display:'flex',gap:20}}>
-          <Link href='/auth/login' style={{fontSize:12,color:'var(--text-tertiary)',textDecoration:'none'}}>Login</Link>
-          <Link href='/auth/signup' style={{fontSize:12,color:'var(--text-tertiary)',textDecoration:'none'}}>Sign Up</Link>
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,.06)', padding: '28px 24px', textAlign: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
+          <div style={{ width: 22, height: 22, borderRadius: 7, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Zap size={11} style={{ color: 'white' }} />
+          </div>
+          <span style={{ fontSize: 14, fontWeight: 900, color: 'rgba(255,255,255,.6)' }}>NicheFlow</span>
         </div>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,.2)' }}>AI-powered market intelligence for founders</div>
       </footer>
     </div>
-  )
+  );
 }
