@@ -1,10 +1,25 @@
-import type { Metadata } from 'next'
-import { Syne, DM_Mono } from 'next/font/google'
-import { Toaster } from 'react-hot-toast'
-import '@/styles/globals.css'
-const syne=Syne({subsets:['latin'],variable:'--font-syne', weight:['400','800']})
-const dmMono=DM_Mono({subsets:['latin'],variable:'--font-dm-mono', weight:['400']})
-export const metadata:Metadata={title:{default:'NicheFlow - AI Startup Generator',template:'%s | NicheFlow'},description:'Generate niche businesses with AI'}
-export default function RootLayout({children}:{children:React.ReactNode}){
-  return(<html lang="en" className="dark"><body className={`${syne.variable} ${dmMono.variable} font-sans antialiased bg-nf-bg`}>{children}<Toaster position="top-right" toastOptions={{style:{background:'#1a1a24',color:'#f0f0f8',border:'1px solid #2a2a38'},success:{iconTheme:{primary:'#00d4a8',secondary:'#0a0a0f'}},error:{iconTheme:{primary:'#ff6b9d',secondary:'#0a0a0f'}}}}/></body></html>)
+import React from 'react';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import '../styles/globals.css';
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+
+export const metadata: Metadata = {
+  title: 'NicheFlow - AI Market Intelligence',
+  description: 'Find profitable niches before everyone else. Real Google Trends data, GO signal analysis, and complete starter kits in one click.',
+  keywords: 'niche research, market validation, Google Trends, startup ideas, AI market intelligence',
+  openGraph: {
+    title: 'NicheFlow - AI Market Intelligence',
+    description: 'Find profitable niches before everyone else with real Google Trends data and AI-powered analysis.',
+    type: 'website',
+  },
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" className="dark">
+      <body className={inter.variable}>{children}</body>
+    </html>
+  );
 }
