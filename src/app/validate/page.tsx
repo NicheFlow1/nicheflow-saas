@@ -1,345 +1,259 @@
-'use client'
-import{useEffect,useState,Suspense}from'react'
-import{useSearchParams}from'next/navigation'
-import{supabase}from'@/lib/supabase/client-singleton'
-import{TrendingUp,AlertTriangle,CheckCircle,XCircle,Clock,Sparkles,Search,Database,BookmarkPlus}from'lucide-react'
-import Link from'next/link'
+'use client';
+import React, { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client-singleton';
+import { TrendingUp, Search, CheckCircle, XCircle, AlertTriangle, ArrowRight, Copy, Zap, BarChart3, Target, DollarSign, Users, Clock } from 'lucide-react';
 
-const FN='https://aincmpxokmsygyghvtnm.supabase.co/functions/v1/validate-keyword'
+const VALIDATE_FN = 'https://aincmpxokmsygyghvtnm.supabase.co/functions/v1/validate-keyword';
+const AUTOPILOT_FN = 'https://aincmpxokmsygyghvtnm.supabase.co/functions/v1/autopilot';
 
-function SignalBadge({v}:{v:string}){
-  if(v==='GO')return<span className='badge badge-go' style={{fontSize:11,padding:'4px 10px'}}><CheckCircle size={10}/>GO</span>
-  if(v==='NO_GO')return<span className='badge badge-nogo' style={{fontSize:11,padding:'4px 10px'}}><XCircle size={10}/>NO GO</span>
-  if(v==='WAIT')return<span className='badge badge-wait' style={{fontSize:11,padding:'4px 10px'}}><Clock size={10}/>WAIT</span>
-  return<span className='badge badge-neutral'>ANALYZING</span>
-}
-
-function TrendChart({data}:{data:Array<{date:string,value:number}>}){
-  if(!data||data.length<2)return<div style={{padding:'20px',textAlign:'center',color:'var(--text-disabled)',fontSize:11}}>No chart data</div>
-  const values=data.map(d=>d.value)
-  const max=Math.max(...values)||1,min=Math.min(...values)
-  const w=600,h=110,pad=8
-  const xStep=(w-pad*2)/(data.length-1)
-  const yScale=(h-pad*2)/Math.max(max-min,1)
-  const pts=data.map((d,i)=>[(pad+i*xStep),(h-pad-(d.value-min)*yScale)])
-  const pathD=pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')
-  const areaD=pathD+' L'+(pts[pts.length-1][0].toFixed(1))+','+(h-pad)+' L'+pad+','+(h-pad)+' Z'
-  const labels=data.filter((_,i)=>i%(Math.floor(data.length/5)||1)===0||i===data.length-1)
-  return(
-    <div style={{width:'100%'}}>
-      <svg viewBox={'0 0 '+w+' '+h} style={{width:'100%',height:110,display:'block'}}>
-        <defs><linearGradient id='tg' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stopColor='#6366f1' stopOpacity={0.3}/><stop offset='100%' stopColor='#6366f1' stopOpacity={0.02}/></linearGradient></defs>
-        <path d={areaD} fill='url(#tg)'/>
-        <path d={pathD} fill='none' stroke='#6366f1' strokeWidth={1.5} strokeLinejoin='round' strokeLinecap='round'/>
-        {pts[pts.length-1]&&<circle cx={pts[pts.length-1][0]} cy={pts[pts.length-1][1]} r={3} fill='#6366f1'/>}
-      </svg>
-      <div style={{display:'flex',justifyContent:'space-between',paddingLeft:pad,paddingRight:pad}}>
-        {labels.slice(0,5).map((d,i)=>(<span key={i} style={{fontSize:9,color:'var(--text-disabled)',fontFamily:'monospace'}}>{d.date.slice(0,7)}</span>))}
+function ScoreBar({ label, score, explanation }: { label: string; score: number; explanation?: string }) {
+  const color = score >= 70 ? 'var(--success)' : score >= 45 ? 'var(--warning)' : 'var(--danger)';
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)' }}>{label}</span>
+        <span style={{ fontSize: 12, fontWeight: 900, color }}>{score}/100</span>
       </div>
-    </div>
-  )
-}
-
-function EvidenceScore({label,score,basis}:{label:string,score:number,basis:string}){
-  const[show,setShow]=useState(false)
-  const c=score>=70?'var(--success)':score>=45?'var(--warning)':'var(--danger)'
-  return(
-    <div style={{marginBottom:12}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-        <div style={{display:'flex',alignItems:'center',gap:6}}>
-          <span style={{fontSize:11,fontWeight:700,color:'var(--text-primary)'}}>{label}</span>
-          {score>0&&<button onClick={()=>setShow(s=>!s)} style={{fontSize:9,color:'var(--brand-purple)',background:'rgba(99,102,241,0.08)',border:'1px solid rgba(99,102,241,0.2)',borderRadius:3,padding:'1px 5px',cursor:'pointer'}}>WHY</button>}
-        </div>
-        {score>0?<span style={{fontSize:13,fontWeight:900,color:c}}>{score}</span>:<span style={{fontSize:10,color:'var(--text-disabled)'}}>N/A</span>}
+      <div style={{ height: 6, background: 'var(--border-base)', borderRadius: 99, overflow: 'hidden', marginBottom: explanation ? 4 : 0 }}>
+        <div style={{ height: '100%', width: score + '%', background: color, borderRadius: 99, transition: 'width 1s ease' }} />
       </div>
-      {score>0&&<div style={{height:3,background:'var(--bg-subtle)',borderRadius:99,overflow:'hidden'}}><div style={{height:'100%',borderRadius:99,background:c,width:score+'%',transition:'width 1s cubic-bezier(0.4,0,0.2,1)'}}/></div>}
-      {show&&<div style={{marginTop:6,padding:'8px 10px',background:'rgba(99,102,241,0.04)',border:'1px solid rgba(99,102,241,0.12)',borderRadius:6,fontSize:10,color:'var(--text-secondary)',lineHeight:1.6}}>{basis}</div>}
+      {explanation && <div style={{ fontSize: 10, color: 'var(--text-disabled)', lineHeight: 1.4 }}>{explanation}</div>}
     </div>
-  )
+  );
 }
 
-function ValidateContent(){
-  const params=useSearchParams()
-  const[token,setToken]=useState<string|null>(null)
-  const[profile,setProfile]=useState<any>(null)
-  const[keyword,setKeyword]=useState('')
-  const[radarId,setRadarId]=useState<string|null>(null)
-  const[loading,setLoading]=useState(false)
-  const[ready,setReady]=useState(false)
-  const[report,setReport]=useState<any>(null)
-  const[error,setError]=useState('')
-  const[saved,setSaved]=useState(false)
-  const[userId,setUserId]=useState<string|null>(null)
+function ValidateContent() {
+  const params = useSearchParams();
+  const [session, setSession] = useState<any>(null);
+  const [keyword, setKeyword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [report, setReport] = useState<any>(null);
+  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState<'overview'|'deep'|'content'|'monetize'>('overview');
 
-  useEffect(()=>{
-    const k=params?.get('keyword'),r=params?.get('radar_id')
-    if(k)setKeyword(k);if(r)setRadarId(r)
-    // Use getSession which auto-refreshes the token
-    supabase.auth.getSession().then(async({data:{session}})=>{
-      if(!session){setReady(true);return}
-      setToken(session.access_token)
-      setUserId(session.user.id)
-      const{data}=await supabase.from('profiles').select('*').eq('id',session.user.id).single()
-      setProfile(data)
-      setReady(true)
-    })
-  },[])
+  useEffect(() => {
+    const k = params?.get('keyword');
+    if (k) setKeyword(k);
+    supabase.auth.getSession().then(({ data: { session: s } }) => setSession(s));
+  }, []);
 
-  // Also listen for auth state changes which refresh the token
-  useEffect(()=>{
-    const{data:{subscription}}=supabase.auth.onAuthStateChange(async(_event,session)=>{
-      if(session){
-        setToken(session.access_token)
-        setUserId(session.user.id)
-        if(!profile){
-          const{data}=await supabase.from('profiles').select('*').eq('id',session.user.id).single()
-          setProfile(data)
-        }
-      }
-    })
-    return()=>subscription.unsubscribe()
-  },[])
-
-  async function run(e:React.FormEvent){
-    e.preventDefault()
-    if(!keyword.trim())return
-    // Re-fetch fresh session token right before API call
-    const{data:{session:freshSession}}=await supabase.auth.getSession()
-    const freshToken=freshSession?.access_token||token
-    if(!freshToken){
-      setError('Not signed in. Please refresh the page.')
-      return
-    }
-    setLoading(true);setError('');setReport(null);setSaved(false)
-    try{
-      const res=await fetch(FN,{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshToken},
-        body:JSON.stringify({keyword:keyword.trim(),radar_id:radarId||undefined})
-      })
-      const data=await res.json()
-      if(!res.ok){
-        if(res.status===429)throw new Error('Credit limit reached. Upgrade your plan to continue.')
-        if(res.status===401)throw new Error('Authentication error. Please sign out and sign in again.')
-        throw new Error(data.error||'Validation failed. Please try again.')
-      }
-      setReport(data.report)
-      setProfile((p:any)=>p?{...p,generations_used:(p.generations_used||0)+1}:p)
-    }catch(err:any){setError(err.message||'Failed. Please try again.')}
-    finally{setLoading(false)}
+  async function validate(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    if (!keyword.trim() || !session) return;
+    setLoading(true); setError(''); setReport(null);
+    const { data: { session: fr } } = await supabase.auth.getSession();
+    try {
+      const res = await fetch(VALIDATE_FN, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (fr?.access_token || session.access_token) }, body: JSON.stringify({ keyword: keyword.trim() }) });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Failed');
+      setReport(d.report);
+      setActiveTab('overview');
+    } catch (e: any) { setError(e.message || 'Failed'); }
+    finally { setLoading(false); }
   }
 
-  async function saveToRadar(){
-    if(!userId||!keyword.trim())return
-    await supabase.from('radar').upsert({user_id:userId,market:keyword.trim()},{onConflict:'user_id,market'}).select().single()
-    setSaved(true)
-  }
+  const signalColor = report?.signal === 'GO' ? 'var(--success)' : report?.signal === 'WAIT' ? 'var(--warning)' : 'var(--danger)';
+  const signalBg = report?.signal === 'GO' ? 'rgba(34,197,94,.1)' : report?.signal === 'WAIT' ? 'rgba(245,158,11,.1)' : 'rgba(239,68,68,.1)';
 
-  const used=profile?.generations_used||0,limit=profile?.generations_limit||7
-  const outOfCredits=used>=limit
-
-  if(!ready)return(
-    <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:400,flexDirection:'column',gap:12}}>
-      <div className='spinner' style={{width:22,height:22,border:'2px solid var(--border-base)',borderTopColor:'var(--brand-purple)'}}/>
-      <span style={{fontSize:11,color:'var(--text-disabled)',fontFamily:'monospace'}}>Loading session...</span>
-    </div>
-  )
-
-  return(
-    <div style={{maxWidth:700,margin:'0 auto'}}>
-      <div className='page-header' style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-        <div><h1>Trend Validation</h1><p>Real Google Trends data — AI interprets what it means</p></div>
-        <div style={{textAlign:'right'}}>
-          <div style={{fontSize:10,color:'var(--text-disabled)',fontFamily:'monospace',marginBottom:4}}>{used}/{limit} CREDITS</div>
-          <div style={{width:80,height:3,background:'var(--bg-subtle)',borderRadius:99,overflow:'hidden'}}>
-            <div style={{height:'100%',background:outOfCredits?'var(--danger)':'linear-gradient(90deg,var(--brand-purple),var(--brand-pink))',borderRadius:99,width:Math.min((used/limit)*100,100)+'%'}}/>
+  return (
+    <div>
+      <div className="page-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Search size={15} style={{ color: 'white' }} />
           </div>
+          <h1>Validate Trend</h1>
         </div>
+        <p>Deep market analysis using real Google Trends data, AI-powered competitive intelligence, and opportunity scoring</p>
       </div>
 
-      {radarId&&<div style={{marginBottom:12,padding:'8px 12px',background:'rgba(99,102,241,0.06)',border:'1px solid rgba(99,102,241,0.2)',borderRadius:'var(--radius-md)',fontSize:11,color:'var(--brand-purple)'}}>Results will update your Radar entry</div>}
+      <form onSubmit={validate} style={{ display: 'flex', gap: 10, marginBottom: 28 }}>
+        <input value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="Enter a keyword, niche, or market to validate..." className="input" style={{ fontSize: 14 }} />
+        <button type="submit" disabled={!keyword.trim() || loading || !session} className="btn btn-grad" style={{ flexShrink: 0, gap: 6 }}>
+          {loading ? <><div className="spinner" style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.3)', borderTopColor: 'white' }} />Analyzing...</> : <><Search size={13} />Validate</>}
+        </button>
+      </form>
 
-      {outOfCredits&&(
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 18px',background:'rgba(245,158,11,0.06)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:'var(--radius-xl)',marginBottom:16}}>
-          <div>
-            <div style={{fontSize:13,fontWeight:700,color:'var(--warning)',marginBottom:2}}>All {limit} free validations used</div>
-            <div style={{fontSize:11,color:'var(--text-tertiary)'}}>Upgrade to Pro for unlimited validations</div>
+      {error && <div style={{ padding: '12px 16px', background: 'var(--surface-nogo)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 12, fontSize: 13, color: 'var(--danger)', marginBottom: 20 }}>{error}</div>}
+
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '60px 24px', background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 20 }}>
+          <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <BarChart3 size={22} style={{ color: 'white' }} />
           </div>
-          <Link href='/settings/billing' className='btn btn-primary btn-sm'>Upgrade to Pro</Link>
+          <h3 style={{ fontWeight: 800, marginBottom: 8 }}>Deep analyzing "{keyword}"</h3>
+          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 20 }}>Fetching 5-year Google Trends data, analyzing competition, scoring monetization potential...</p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
+            {['Trend Data', '5-Year Chart', 'Competition', 'Monetization', 'AI Analysis', 'Opportunity Score'].map((s, i) => (
+              <span key={i} style={{ padding: '3px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700, background: 'rgba(99,102,241,.08)', color: 'var(--brand-purple)', border: '1px solid rgba(99,102,241,.15)' }}>{s}</span>
+            ))}
+          </div>
         </div>
       )}
 
-      <div className='card' style={{padding:18,marginBottom:20}}>
-        <form onSubmit={run}>
-          <div style={{display:'flex',gap:8,marginBottom:error?12:0}}>
-            <div style={{flex:1,position:'relative'}}>
-              <Search size={13} style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:'var(--text-disabled)',pointerEvents:'none'}}/>
-              <input
-                value={keyword}
-                onChange={e=>setKeyword(e.target.value)}
-                placeholder='Enter a market or keyword... e.g. longevity supplements, AI coding tools'
-                className='input'
-                style={{paddingLeft:34}}
-              />
-            </div>
-            <button
-              type='submit'
-              disabled={loading||!keyword.trim()||outOfCredits||!ready}
-              className='btn btn-primary'
-              style={{whiteSpace:'nowrap'}}
-            >
-              {loading
-                ?<><div className='spinner' style={{width:13,height:13,border:'2px solid rgba(255,255,255,0.3)',borderTopColor:'white'}}/>Analyzing...</>
-                :'Validate'
-              }
-            </button>
-          </div>
-          {error&&(
-            <div style={{display:'flex',alignItems:'flex-start',gap:8,padding:'10px 12px',background:'var(--surface-nogo)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'var(--radius-md)',marginTop:12}}>
-              <AlertTriangle size={13} style={{color:'var(--danger)',flexShrink:0,marginTop:1}}/>
-              <span style={{fontSize:12,color:'var(--danger)'}}>{error}</span>
-            </div>
-          )}
-        </form>
-        <div style={{display:'flex',alignItems:'center',gap:6,marginTop:12,padding:'6px 10px',background:'var(--bg-overlay)',borderRadius:6}}>
-          <Database size={10} style={{color:'var(--brand-purple)',flexShrink:0}}/>
-          <span style={{fontSize:10,color:'var(--text-tertiary)'}}>Powered by real Google Trends data. Scores derived from actual search volume — not AI-generated numbers.</span>
-        </div>
-      </div>
-
-      {report&&(
-        <div style={{display:'flex',flexDirection:'column',gap:8}}>
-          <div className='card' style={{padding:22}}>
-            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:16,marginBottom:16}}>
-              <div style={{flex:1}}>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8,flexWrap:'wrap'}}>
-                  <SignalBadge v={report.signal}/>
-                  {report.data_sources?.map((s:string,i:number)=>(
-                    <span key={i} style={{display:'flex',alignItems:'center',gap:4,fontSize:9,fontWeight:600,padding:'2px 7px',borderRadius:4,background:'rgba(34,197,94,0.06)',border:'1px solid rgba(34,197,94,0.15)',color:'var(--success)',textTransform:'uppercase',letterSpacing:'0.04em'}}>
-                      <Database size={8}/>{s}
-                    </span>
-                  ))}
+      {report && !loading && (
+        <div>
+          <div style={{ background: 'linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.04))', border: '1px solid rgba(99,102,241,.2)', borderRadius: 20, padding: 24, marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 99, background: signalBg, border: '1px solid ' + signalColor, fontSize: 12, fontWeight: 900, color: signalColor, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                    {report.signal === 'GO' ? <CheckCircle size={12} /> : report.signal === 'WAIT' ? <AlertTriangle size={12} /> : <XCircle size={12} />}
+                    {report.signal}
+                  </span>
+                  <span style={{ fontSize: 24, fontWeight: 900, color: signalColor }}>{report.overall_score}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-disabled)' }}>/ 100</span>
                 </div>
-                <h2 style={{fontSize:'1.2rem',fontWeight:900,color:'var(--text-primary)',marginBottom:4}}>{report.keyword}</h2>
-                {report.signal_reason&&<p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,fontStyle:'italic'}}>{report.signal_reason}</p>}
-              </div>
-              <div style={{flexShrink:0,textAlign:'center',background:'var(--bg-overlay)',borderRadius:'var(--radius-xl)',padding:'14px 18px',minWidth:80}}>
-                <div style={{fontSize:'1.75rem',fontWeight:900,color:report.overall_score>=65?'var(--success)':report.overall_score>=40?'var(--warning)':'var(--danger)'}}>{report.overall_score||0}</div>
-                <div style={{fontSize:9,color:'var(--text-disabled)',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:2}}>Score</div>
-              </div>
-            </div>
-            {report.ai_interpretation&&(
-              <div className='insight-box' style={{marginBottom:16}}>
-                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
-                  <Sparkles size={11} style={{color:'var(--brand-purple)'}}/>
-                  <span style={{fontSize:9,fontWeight:700,color:'var(--brand-purple)',textTransform:'uppercase',letterSpacing:'0.06em'}}>AI Interpretation</span>
-                </div>
-                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7}}>{report.ai_interpretation}</p>
-              </div>
-            )}
-            <button onClick={saveToRadar} disabled={saved} className='btn btn-ghost btn-sm' style={{width:'100%',justifyContent:'center'}}>
-              <BookmarkPlus size={12}/>{saved?'Added to Radar':'Add to Radar'}
-            </button>
-          </div>
-
-          {report.trend_chart_data?.length>2&&(
-            <div className='card' style={{padding:'18px 18px 10px'}}>
-              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
-                <TrendingUp size={13} style={{color:'var(--brand-purple)'}}/>
-                <span style={{fontSize:10,fontWeight:700,color:'var(--brand-purple)',textTransform:'uppercase',letterSpacing:'0.06em'}}>5-Year Search Interest</span>
-                <span style={{fontSize:9,padding:'1px 6px',borderRadius:3,background:'rgba(34,197,94,0.08)',color:'var(--success)',border:'1px solid rgba(34,197,94,0.15)',fontFamily:'monospace'}}>REAL DATA</span>
-              </div>
-              <TrendChart data={report.trend_chart_data}/>
-            </div>
-          )}
-
-          <div className='card' style={{padding:18}}>
-            <div style={{fontSize:10,fontWeight:700,color:'var(--brand-purple)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:14,display:'flex',alignItems:'center',gap:6}}>
-              <Database size={11}/>Evidence-Backed Scores
-            </div>
-            <EvidenceScore label='Trend Score' score={report.trend_score||0} basis={report.trend_score_basis||'No data'}/>
-            <EvidenceScore label='Demand Score' score={report.demand_score||0} basis={report.demand_score_basis||'No data'}/>
-            <EvidenceScore label='Timing Score' score={report.timing_score||0} basis={report.timing_score_basis||'No data'}/>
-            <EvidenceScore label='Competition (AI estimate)' score={report.competition_score||0} basis={report.competition_score_basis||'AI only'}/>
-          </div>
-
-          {(report.top_queries?.length>0||report.rising_queries?.length>0)&&(
-            <div className='card' style={{padding:18}}>
-              <div style={{fontSize:10,fontWeight:700,color:'var(--brand-purple)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:14,display:'flex',alignItems:'center',gap:6}}>
-                <Search size={11}/>Related Searches
-                <span style={{fontSize:9,padding:'1px 6px',borderRadius:3,background:'rgba(34,197,94,0.08)',color:'var(--success)',border:'1px solid rgba(34,197,94,0.15)',fontFamily:'monospace',fontWeight:400,textTransform:'none',letterSpacing:0}}>REAL DATA</span>
-              </div>
-              <div className='grid-2' style={{gap:16}}>
-                {report.top_queries?.length>0&&(
-                  <div>
-                    <div style={{fontSize:9,color:'var(--text-disabled)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Top Queries</div>
-                    {report.top_queries.slice(0,8).map((q:any,i:number)=>(
-                      <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'4px 0',borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
-                        <span style={{fontSize:11,color:'var(--text-secondary)'}}>{q.query}</span>
-                        <span style={{fontSize:10,fontWeight:700,color:'var(--brand-purple)',flexShrink:0,marginLeft:8}}>{q.value}</span>
-                      </div>
-                    ))}
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 900, marginBottom: 6 }}>{report.keyword}</h2>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: 12 }}>{report.summary}</p>
+                {report.opportunity && (
+                  <div style={{ padding: '10px 14px', background: 'rgba(99,102,241,.07)', borderLeft: '3px solid var(--brand-purple)', borderRadius: '0 10px 10px 0', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    <strong style={{ color: 'var(--brand-purple)' }}>Opportunity: </strong>{report.opportunity}
                   </div>
                 )}
-                {report.rising_queries?.length>0&&(
-                  <div>
-                    <div style={{fontSize:9,color:'var(--text-disabled)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Rising Queries</div>
-                    {report.rising_queries.slice(0,8).map((q:any,i:number)=>(
-                      <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'4px 0',borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
-                        <span style={{fontSize:11,color:'var(--text-secondary)'}}>{q.query}</span>
-                        <span style={{fontSize:9,fontWeight:700,color:String(q.value).includes('Breakout')?'var(--warning)':'var(--success)',background:String(q.value).includes('Breakout')?'rgba(245,158,11,0.08)':'rgba(34,197,94,0.08)',padding:'1px 5px',borderRadius:3,flexShrink:0,marginLeft:4}}>
-                          {String(q.value).includes('Breakout')?'BREAKOUT':String(q.value)}
-                        </span>
-                      </div>
-                    ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, minWidth: 200 }}>
+                {[
+                  { label: '12-Month Avg', val: report.raw_trend_avg + '/100', icon: TrendingUp },
+                  { label: '5-Year Growth', val: (report.growth_5y > 0 ? '+' : '') + report.growth_5y + '%', icon: BarChart3 },
+                  { label: 'Recent Momentum', val: (report.recent_momentum > 0 ? '+' : '') + report.recent_momentum + '%', icon: Zap },
+                  { label: 'Peak Interest', val: report.peak_value + '/100', icon: Target },
+                ].map((m, i) => (
+                  <div key={i} style={{ padding: '10px 12px', background: 'var(--bg-overlay)', borderRadius: 12, textAlign: 'center' }}>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 2 }}>{m.val}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 0 }}>
+            {[['overview','Overview'],['deep','Deep Analysis'],['content','Content Angles'],['monetize','Monetize']].map(([id, label]) => (
+              <button key={id} onClick={() => setActiveTab(id as any)} style={{ padding: '10px 16px', background: 'none', border: 'none', borderBottom: activeTab === id ? '2px solid var(--brand-purple)' : '2px solid transparent', fontSize: 12.5, fontWeight: activeTab === id ? 700 : 500, color: activeTab === id ? 'var(--brand-purple)' : 'var(--text-tertiary)', cursor: 'pointer', marginBottom: -1, fontFamily: 'inherit' }}>{label}</button>
+            ))}
+          </div>
+
+          {activeTab === 'overview' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 16, padding: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand-purple)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 16 }}>Opportunity Scores</div>
+                {report.scores && Object.entries(report.scores).map(([key, val]) => (
+                  <ScoreBar key={key} label={key.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())} score={Number(val)} explanation={report.score_explanations?.[key]} />
+                ))}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {report.green_flags?.length > 0 && (
+                  <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 16, padding: 18 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 12 }}>Green Flags</div>
+                    {report.green_flags.map((f: string, i: number) => <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}><CheckCircle size={13} style={{ color: 'var(--success)', flexShrink: 0, marginTop: 1 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{f}</span></div>)}
+                  </div>
+                )}
+                {report.red_flags?.length > 0 && (
+                  <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 16, padding: 18 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--danger)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 12 }}>Watch Out For</div>
+                    {report.red_flags.map((f: string, i: number) => <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}><XCircle size={13} style={{ color: 'var(--danger)', flexShrink: 0, marginTop: 1 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{f}</span></div>)}
+                  </div>
+                )}
+                {report.immediate_actions?.length > 0 && (
+                  <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 16, padding: 18 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand-purple)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 12 }}>Immediate Actions</div>
+                    {report.immediate_actions.map((a: string, i: number) => <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}><ArrowRight size={13} style={{ color: 'var(--brand-purple)', flexShrink: 0, marginTop: 1 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{a}</span></div>)}
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {report.ai_opportunities?.length>0&&(
-            <div className='card' style={{padding:18}}>
-              <div style={{fontSize:10,fontWeight:700,color:'var(--brand-purple)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:14,display:'flex',alignItems:'center',gap:6}}>
-                <Sparkles size={11}/>Opportunities
-              </div>
-              {report.ai_opportunities.map((o:any,i:number)=>(
-                <div key={i} style={{padding:'12px 14px',background:'var(--bg-overlay)',borderRadius:'var(--radius-lg)',marginBottom:8}}>
-                  <div style={{fontSize:12,fontWeight:700,color:'var(--text-primary)',marginBottom:3}}>{o.title}</div>
-                  <div style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,marginBottom:4}}>{o.why}</div>
-                  {o.evidence&&<div style={{fontSize:10,color:'var(--brand-purple)',fontStyle:'italic'}}>Evidence: {o.evidence}</div>}
+          {activeTab === 'deep' && (
+            <div style={{ display: 'grid', gap: 14 }}>
+              {report.market_insight && <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 16, padding: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand-purple)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>Key Insight</div>
+                <div style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.7, fontStyle: 'italic' }}>"{report.market_insight}"</div>
+              </div>}
+              {report.best_entry_angle && <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 16, padding: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>Best Entry Angle</div>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{report.best_entry_angle}</div>
+              </div>}
+              {report.competitors?.length > 0 && <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 16, padding: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand-purple)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 14 }}>Competitor Gaps</div>
+                {report.competitors.map((c: any, i: number) => <div key={i} style={{ padding: '12px 14px', background: 'var(--bg-overlay)', borderRadius: 10, marginBottom: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{c.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Weakness: {c.weakness}</div>
+                  <div style={{ fontSize: 11, color: 'var(--success)' }}>Opportunity: {c.opportunity}</div>
+                </div>)}
+              </div>}
+              {report.pain_points?.length > 0 && <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 16, padding: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand-purple)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 14 }}>Customer Pain Points</div>
+                {report.pain_points.map((p: string, i: number) => <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}><Target size={13} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: 2 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{p}</span></div>)}
+              </div>}
+            </div>
+          )}
+
+          {activeTab === 'content' && (
+            <div style={{ display: 'grid', gap: 12 }}>
+              {report.content_angles?.map((a: any, i: number) => (
+                <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 14, padding: 18 }}>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: 'rgba(99,102,241,.1)', color: 'var(--brand-purple)', textTransform: 'uppercase' }}>{a.platform}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-disabled)' }}>{a.angle}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>"{a.hook}"</div>
                 </div>
               ))}
-            </div>
-          )}
-
-          {report.ai_action_plan&&Object.keys(report.ai_action_plan).length>0&&(
-            <div className='card' style={{padding:18}}>
-              <div style={{fontSize:10,fontWeight:700,color:'var(--brand-purple)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:14}}>Action Plan</div>
-              {([['immediate','This Week'],['validation_step','Validation Step'],['first_revenue','First Revenue']] as [string,string][]).map(([k,label])=>
-                report.ai_action_plan[k]&&(
-                  <div key={k} style={{padding:'10px 12px',background:'var(--bg-overlay)',borderRadius:'var(--radius-md)',marginBottom:8}}>
-                    <div style={{fontSize:9,color:'var(--brand-purple)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4}}>{label}</div>
-                    <div style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.6}}>{report.ai_action_plan[k]}</div>
+              {report.rising_angles?.length > 0 && (
+                <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 14, padding: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand-purple)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 12 }}>Rising Sub-Niches</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {report.rising_angles.map((a: string, i: number) => <span key={i} style={{ padding: '5px 10px', background: 'var(--bg-overlay)', border: '1px solid var(--border-base)', borderRadius: 99, fontSize: 12, color: 'var(--text-secondary)' }}>{a}</span>)}
                   </div>
-                )
+                </div>
               )}
             </div>
           )}
+
+          {activeTab === 'monetize' && (
+            <div style={{ display: 'grid', gap: 12 }}>
+              {report.monetization_ideas?.map((m: any, i: number) => (
+                <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 14, padding: 18 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>{m.model}</div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: m.difficulty === 'easy' ? 'rgba(34,197,94,.1)' : 'rgba(245,158,11,.1)', color: m.difficulty === 'easy' ? 'var(--success)' : 'var(--warning)', textTransform: 'uppercase' }}>{m.difficulty}</span>
+                        <span style={{ fontSize: 10, color: 'var(--text-disabled)' }}>{m.time_to_revenue} to revenue</span>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--success)' }}>{m.price}</div>
+                  </div>
+                </div>
+              ))}
+              {report.keyword_variations?.length > 0 && (
+                <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 14, padding: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand-purple)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 12 }}>Related Keywords to Target</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {report.keyword_variations.map((k: string, i: number) => <span key={i} style={{ padding: '5px 10px', background: 'var(--bg-overlay)', border: '1px solid var(--border-base)', borderRadius: 99, fontSize: 12, color: 'var(--text-secondary)' }}>{k}</span>)}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
+            <a href={'/autopilot/starter?keyword=' + encodeURIComponent(report.keyword)} className="btn btn-grad" style={{ gap: 8 }}><Zap size={14} />Build Starter Kit</a>
+            <button onClick={() => { setReport(null); setKeyword(''); }} className="btn btn-ghost" style={{ gap: 8 }}><Search size={13} />New Search</button>
+          </div>
         </div>
       )}
     </div>
-  )
+  );
 }
 
-export default function ValidatePage(){
-  return(
-    <Suspense fallback={
-      <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:400}}>
-        <div className='spinner' style={{width:20,height:20,border:'2px solid var(--border-base)',borderTopColor:'var(--brand-purple)'}}/>
-      </div>
-    }>
-      <ValidateContent/>
+export default function ValidatePage() {
+  return (
+    <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}><div className="spinner" style={{ width: 22, height: 22, border: '2px solid var(--border-base)', borderTopColor: 'var(--brand-purple)' }} /></div>}>
+      <ValidateContent />
     </Suspense>
-  )
+  );
 }
