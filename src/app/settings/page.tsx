@@ -1,88 +1,142 @@
-'use client'
-import{useEffect,useState}from'react'
-import Link from'next/link'
-import{supabase}from'@/lib/supabase/client-singleton'
-import{User,CreditCard,Zap,CheckCircle}from'lucide-react'
+'use client';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase/client-singleton';
+import { Save, CheckCircle, Globe, Palette, User, Bell, Shield } from 'lucide-react';
 
-export default function SettingsPage(){
-  const[user,setUser]=useState<any>(null)
-  const[profile,setProfile]=useState<any>(null)
-  const[fullName,setFullName]=useState('')
-  const[saving,setSaving]=useState(false)
-  const[saved,setSaved]=useState(false)
+const THEMES = [
+  { id: 'dark', label: 'Dark', desc: 'Easy on the eyes' },
+  { id: 'midnight', label: 'Midnight', desc: 'Deep black, high contrast' },
+  { id: 'light', label: 'Light', desc: 'Clean white theme' },
+  { id: 'purple', label: 'Purple', desc: 'Vibrant purple accent' },
+];
 
-  useEffect(()=>{
-    supabase.auth.getSession().then(async({data:{session}})=>{
-      if(!session)return
-      setUser(session.user)
-      const{data}=await supabase.from('profiles').select('*').eq('id',session.user.id).single()
-      setProfile(data);setFullName(data?.full_name||'')
-    })
-  },[])
+const LANGUAGES = [
+  { code: 'en', label: 'English', native: 'English' },
+  { code: 'ps', label: 'Pashto', native: 'پښتو' },
+  { code: 'fa', label: 'Persian/Dari', native: 'دری' },
+  { code: 'ar', label: 'Arabic', native: 'العربية' },
+  { code: 'es', label: 'Spanish', native: 'Español' },
+  { code: 'fr', label: 'French', native: 'Français' },
+  { code: 'de', label: 'German', native: 'Deutsch' },
+  { code: 'zh', label: 'Chinese', native: '中文' },
+  { code: 'hi', label: 'Hindi', native: 'हिन्दी' },
+  { code: 'pt', label: 'Portuguese', native: 'Português' },
+  { code: 'ru', label: 'Russian', native: 'Русский' },
+  { code: 'tr', label: 'Turkish', native: 'Türkçe' },
+  { code: 'id', label: 'Indonesian', native: 'Bahasa Indonesia' },
+  { code: 'ur', label: 'Urdu', native: 'اردو' },
+  { code: 'bn', label: 'Bengali', native: 'বাংলা' },
+];
 
-  async function save(e:React.FormEvent){
-    e.preventDefault();setSaving(true);setSaved(false)
-    await supabase.from('profiles').update({full_name:fullName}).eq('id',user.id)
-    setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),3000)
+export default function SettingsPage() {
+  const [profile, setProfile] = useState<any>(null);
+  const [email, setEmail] = useState('');
+  const [theme, setTheme] = useState('dark');
+  const [language, setLanguage] = useState('en');
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return;
+      setEmail(session.user.email || '');
+      const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      if (data) {
+        setProfile(data);
+        setTheme(data.theme || 'dark');
+        setLanguage(data.language || 'en');
+      }
+    });
+  }, []);
+
+  function applyTheme(t: string) {
+    setTheme(t);
+    document.documentElement.setAttribute('data-theme', t);
+    if (t === 'light') {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    }
   }
 
-  if(!user)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:300}}><div className='spinner' style={{width:20,height:20,border:'2px solid var(--border-base)',borderTopColor:'var(--brand-purple)'}}/></div>
+  async function save() {
+    if (!profile) return;
+    setSaving(true);
+    await supabase.from('profiles').update({ theme, language }).eq('id', profile.id);
+    applyTheme(theme);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+    setSaving(false);
+  }
 
-  const used=profile?.generations_used||0,limit=profile?.generations_limit||7,plan=profile?.plan||'free'
-
-  return(
-    <div style={{maxWidth:560}}>
-      <div className='page-header'><h1>Settings</h1><p>Manage your account and plan</p></div>
-
-      {/* Profile */}
-      <div className='card' style={{padding:24,marginBottom:12}}>
-        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
-          <div style={{width:32,height:32,borderRadius:'var(--radius-md)',background:'rgba(99,102,241,0.1)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-            <User size={15} style={{color:'var(--brand-purple)'}}/>
-          </div>
-          <h3 style={{fontSize:14,fontWeight:700,color:'var(--text-primary)'}}>Profile</h3>
-        </div>
-        <form onSubmit={save}>
-          <div style={{marginBottom:12}}>
-            <label style={{display:'block',fontSize:11,color:'var(--text-tertiary)',marginBottom:6,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>Email</label>
-            <input value={user.email||''} disabled className='input' style={{opacity:0.5,cursor:'not-allowed'}}/>
-          </div>
-          <div style={{marginBottom:18}}>
-            <label style={{display:'block',fontSize:11,color:'var(--text-tertiary)',marginBottom:6,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>Display Name</label>
-            <input value={fullName} onChange={e=>setFullName(e.target.value)} placeholder='Your name' className='input'/>
-          </div>
-          <button type='submit' disabled={saving} className={'btn '+(saved?'btn-ghost':'btn-primary')} style={{gap:6}}>
-            {saved?<><CheckCircle size={13}/>Saved!</>:saving?'Saving...':'Save Changes'}
-          </button>
-        </form>
+  return (
+    <div style={{ maxWidth: 640 }}>
+      <div className="page-header">
+        <h1>Settings</h1>
+        <p>Manage your account, appearance, and preferences</p>
       </div>
 
-      {/* Plan & Credits */}
-      <div className='card' style={{padding:24,marginBottom:12}}>
-        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
-          <div style={{width:32,height:32,borderRadius:'var(--radius-md)',background:'rgba(245,158,11,0.1)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-            <Zap size={15} style={{color:'var(--warning)'}}/>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 'var(--radius-2xl)', padding: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+            <User size={16} style={{ color: 'var(--brand-purple)' }} />
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>Account</div>
           </div>
-          <h3 style={{fontSize:14,fontWeight:700,color:'var(--text-primary)'}}>Plan & Credits</h3>
-        </div>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-          <div>
-            <div style={{fontSize:11,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4}}>Current Plan</div>
-            <div style={{fontSize:15,fontWeight:800,color:'var(--text-primary)',textTransform:'capitalize'}}>{plan}</div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>Email Address</label>
+            <input value={email} disabled className="input" style={{ opacity: 0.6, fontSize: 13 }} />
           </div>
-          <div style={{textAlign:'right'}}>
-            <div style={{fontSize:11,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4}}>Validations Used</div>
-            <div style={{fontSize:15,fontWeight:800,color:'var(--text-primary)'}}>{used} / {limit}</div>
+          <div style={{ padding: '10px 14px', background: 'var(--bg-overlay)', borderRadius: 10, fontSize: 12, color: 'var(--text-tertiary)' }}>
+            Plan: <strong style={{ color: 'var(--brand-purple)' }}>{profile?.plan === 'pro' ? 'Pro' : 'Free'}</strong> &nbsp;|&nbsp; Generations: {profile?.generations_used || 0}/{profile?.generations_limit || 7} used
           </div>
         </div>
-        <div style={{height:6,background:'var(--bg-subtle)',borderRadius:99,overflow:'hidden',marginBottom:18}}>
-          <div style={{height:'100%',background:used>=limit?'var(--danger)':'linear-gradient(90deg,var(--brand-purple),var(--brand-pink))',borderRadius:99,width:Math.min((used/limit)*100,100)+'%',transition:'width 0.5s'}}/>
+
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 'var(--radius-2xl)', padding: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+            <Palette size={16} style={{ color: 'var(--brand-purple)' }} />
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>Theme</div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+            {THEMES.map(t => (
+              <button key={t.id} onClick={() => applyTheme(t.id)} style={{ padding: '14px 16px', background: theme === t.id ? 'rgba(99,102,241,.1)' : 'var(--bg-overlay)', border: '2px solid ' + (theme === t.id ? 'var(--brand-purple)' : 'var(--border-base)'), borderRadius: 12, cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <div style={{ width: 20, height: 20, borderRadius: 6, background: t.id === 'dark' ? '#1a1a2e' : t.id === 'midnight' ? '#000008' : t.id === 'light' ? '#f8f9ff' : '#2d1b69', border: '1px solid rgba(255,255,255,.1)' }} />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{t.label}</span>
+                  {theme === t.id && <CheckCircle size={13} style={{ color: 'var(--brand-purple)', marginLeft: 'auto' }} />}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-disabled)' }}>{t.desc}</div>
+              </button>
+            ))}
+          </div>
         </div>
-        {plan==='free'&&<p style={{fontSize:12,color:'var(--text-tertiary)',marginBottom:16}}>Upgrade to Pro for unlimited validations, priority analysis, and competition data.</p>}
-        <Link href='/settings/billing' className='btn btn-primary' style={{display:'inline-flex',gap:6}}>
-          <CreditCard size={13}/>{plan==='free'?'Upgrade to Pro':'Manage Billing'}
-        </Link>
+
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 'var(--radius-2xl)', padding: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+            <Globe size={16} style={{ color: 'var(--brand-purple)' }} />
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>Language</div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+            {LANGUAGES.map(l => (
+              <button key={l.code} onClick={() => setLanguage(l.code)} style={{ padding: '10px 12px', background: language === l.code ? 'rgba(99,102,241,.1)' : 'var(--bg-overlay)', border: '2px solid ' + (language === l.code ? 'var(--brand-purple)' : 'var(--border-base)'), borderRadius: 10, cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>{l.native}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-disabled)' }}>{l.label}</div>
+                {language === l.code && <CheckCircle size={11} style={{ color: 'var(--brand-purple)', marginTop: 4 }} />}
+              </button>
+            ))}
+          </div>
+          <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(99,102,241,.06)', borderRadius: 8, fontSize: 11, color: 'var(--text-tertiary)' }}>
+            Language affects AI responses and UI labels. After saving, AI-generated content will be in your selected language.
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={save} disabled={saving} className="btn btn-grad" style={{ gap: 8 }}>
+            {saved ? <><CheckCircle size={14} />Saved!</> : saving ? <><div className="spinner" style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.3)', borderTopColor: 'white' }} />Saving...</> : <><Save size={14} />Save Settings</>}
+          </button>
+        </div>
       </div>
     </div>
-  )
+  );
 }
