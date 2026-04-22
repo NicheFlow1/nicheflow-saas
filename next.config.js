@@ -3,6 +3,8 @@ const nextConfig = {
   images: { remotePatterns: [{ protocol: 'https', hostname: '*.supabase.co' }] },
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
+  generateBuildId: async () => {
+    return 'build-' + Date.now();
+  },
 };
 module.exports = nextConfig;
-// REBUILD 1776070529067
