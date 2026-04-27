@@ -2,11 +2,10 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client-singleton';
-import { Zap, Sparkles, ArrowRight, ArrowLeft, Copy, CheckCircle } from 'lucide-react';
+import { Zap, Sparkles, ArrowLeft, Copy, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 const AUTOPILOT_FN = 'https://aincmpxokmsygyghvtnm.supabase.co/functions/v1/autopilot';
-const VALIDATE_FN = 'https://aincmpxokmsygyghvtnm.supabase.co/functions/v1/validate-keyword';
 
 function CopyBtn({ text }: { text: string }) {
   const [c, setC] = useState(false);
@@ -18,7 +17,7 @@ function CopyBtn({ text }: { text: string }) {
   );
 }
 
-function KitDisplay({ kit, report }: { kit: any; report: any }) {
+function KitDisplay({ kit }: { kit: any }) {
   const products: any[] = kit.product_ideas || [];
   const actions: any[] = kit.week1_actions || [];
   const communities: any[] = kit.reddit_communities || [];
@@ -43,13 +42,11 @@ function KitDisplay({ kit, report }: { kit: any; report: any }) {
               </div>
             </div>
           </div>
-          {report && (
-            <div style={{ textAlign: 'center', background: 'var(--bg-overlay)', borderRadius: 14, padding: '12px 16px', flexShrink: 0 }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: report.signal === 'GO' ? 'var(--success)' : 'var(--warning)' }}>{report.overall_score || 0}</div>
-              <div style={{ fontSize: 8, color: 'var(--text-disabled)', textTransform: 'uppercase' }}>score</div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: report.signal === 'GO' ? 'var(--success)' : 'var(--warning)', marginTop: 2 }}>{report.signal}</div>
-            </div>
-          )}
+          <div style={{ textAlign: 'center', background: 'var(--bg-overlay)', borderRadius: 14, padding: '12px 16px', flexShrink: 0 }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: kit.signal === 'GO' ? 'var(--success)' : 'var(--warning)' }}>{kit.overall_score || 0}</div>
+            <div style={{ fontSize: 8, color: 'var(--text-disabled)', textTransform: 'uppercase' }}>score</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: kit.signal === 'GO' ? 'var(--success)' : 'var(--warning)', marginTop: 2 }}>{kit.signal}</div>
+          </div>
         </div>
       </div>
 
@@ -155,7 +152,7 @@ function KitDisplay({ kit, report }: { kit: any; report: any }) {
 
       <div style={{ display: 'flex', gap: 10 }}>
         <Link href="/autopilot" className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }}><ArrowLeft size={13} /> Back</Link>
-        <Link href={'/validate?keyword=' + encodeURIComponent(kit.keyword)} className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}><ArrowRight size={13} /> Deep Validate</Link>
+        <Link href={'/validate?keyword=' + encodeURIComponent(kit.keyword)} className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}>Deep Validate</Link>
       </div>
     </div>
   );
@@ -165,10 +162,10 @@ function StarterContent() {
   const params = useSearchParams();
   const [session, setSession] = useState<any>(null);
   const [keyword, setKeyword] = useState('');
-  const [report, setReport] = useState<any>(null);
   const [kit, setKit] = useState<any>(null);
   const [error, setError] = useState('');
-  const [step, setStep] = useState<'input' | 'validating' | 'building' | 'done'>('input');
+  const [step, setStep] = useState<'input' | 'building' | 'done'>('input');
+  const [dots, setDots] = useState('');
 
   useEffect(() => {
     const k = params?.get('keyword');
@@ -176,62 +173,85 @@ function StarterContent() {
     supabase.auth.getSession().then(({ data: { session: s } }) => setSession(s));
   }, []);
 
+  useEffect(() => {
+    if (step !== 'building') return;
+    const interval = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 600);
+    return () => clearInterval(interval);
+  }, [step]);
+
   async function build(e: React.FormEvent) {
     e.preventDefault();
     if (!keyword.trim() || !session) return;
-    const { data: { session: fr } } = await supabase.auth.getSession();
-    const tok = fr?.access_token || session.access_token;
-    setError(''); setStep('validating');
+    setError('');
+    setStep('building');
     try {
-      const vr = await fetch(VALIDATE_FN, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok }, body: JSON.stringify({ keyword: keyword.trim() }) });
-      const vd = await vr.json();
-      if (vr.ok) setReport(vd.report);
-      setStep('building');
-      const kr = await fetch(AUTOPILOT_FN, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok }, body: JSON.stringify({ action: 'generate_starter_kit', keyword: keyword.trim(), report_id: vd.report?.id }) });
+      const { data: { session: fr } } = await supabase.auth.getSession();
+      const tok = fr?.access_token || session.access_token;
+      // Use AbortController with 90 second timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 90000);
+      const kr = await fetch(AUTOPILOT_FN, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
+        body: JSON.stringify({ action: 'generate_starter_kit', keyword: keyword.trim() }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
       const kd = await kr.json();
       if (!kr.ok) throw new Error(kd.error || 'Failed to build kit');
-      setKit(kd.starter_kit); setStep('done');
-    } catch (er: any) { setError(er.message || 'Failed'); setStep('input'); }
+      setKit(kd.starter_kit);
+      setStep('done');
+    } catch (er: any) {
+      if (er.name === 'AbortError') {
+        setError('Request timed out. The AI is busy - please try again.');
+      } else {
+        setError(er.message || 'Failed to build kit');
+      }
+      setStep('input');
+    }
   }
 
-  if (step === 'validating' || step === 'building') return (
+  if (step === 'building') return (
     <div style={{ textAlign: 'center', padding: '80px 24px' }}>
-      <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-        <Zap size={24} style={{ color: 'white' }} />
+      <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', boxShadow: '0 0 40px rgba(99,102,241,.4)' }}>
+        <Zap size={28} style={{ color: 'white' }} />
       </div>
-      <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 8 }}>
-        {step === 'validating' ? 'Fetching real trend data...' : 'Building your starter kit...'}
-      </h2>
-      <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 24 }}>
-        {step === 'validating' ? 'Checking Google Trends for ' + keyword : 'Generating product ideas, landing page, Reddit communities...'}
+      <h2 style={{ fontSize: '1.2rem', fontWeight: 900, marginBottom: 10 }}>Building your starter kit{dots}</h2>
+      <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 28, maxWidth: 400, margin: '0 auto 28px' }}>
+        Fetching real Google Trends data, analyzing competitors, generating product ideas and your complete 7-day launch plan.
       </p>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
-        {['Trend data', 'Opportunity score', 'Product ideas', 'Landing page', 'Revenue path'].map((s, i) => (
-          <span key={i} style={{ padding: '4px 10px', borderRadius: 99, fontSize: 10, fontWeight: 700, background: 'rgba(99,102,241,.08)', color: 'var(--brand-purple)', border: '1px solid rgba(99,102,241,.15)', opacity: step === 'building' ? 1 : i < 2 ? 1 : 0.3 }}>{s}</span>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {['Trend Analysis', 'Market Scoring', 'Product Ideas', 'Launch Plan', 'Revenue Path'].map((s, i) => (
+          <span key={i} style={{ padding: '5px 12px', borderRadius: 99, fontSize: 11, fontWeight: 600, background: 'rgba(99,102,241,.08)', color: 'var(--brand-purple)', border: '1px solid rgba(99,102,241,.15)' }}>{s}</span>
         ))}
       </div>
+      <p style={{ fontSize: 11, color: 'var(--text-disabled)', marginTop: 24 }}>This takes 30-60 seconds. Please wait.</p>
     </div>
   );
 
-  if (step === 'done' && kit) return <KitDisplay kit={kit} report={report} />;
+  if (step === 'done' && kit) return <KitDisplay kit={kit} />;
 
   return (
     <div style={{ maxWidth: 540, margin: '0 auto' }}>
       <div className="page-header">
         <h1>Starter Kit Builder</h1>
-        <p>Validate a market and get a complete business starter kit in one click</p>
+        <p>Get a complete business starter kit with real Google Trends data in one click</p>
       </div>
       <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 'var(--radius-2xl)', padding: 28 }}>
         <form onSubmit={build}>
           <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Market or Keyword</label>
-          <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. AI fitness coach, longevity supplements, ADHD productivity tools" className="input" style={{ marginBottom: 16, fontSize: 14 }} />
-          {error && <div style={{ padding: '10px 12px', background: 'var(--surface-nogo)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--danger)', marginBottom: 16 }}>{error}</div>}
-          <button type="submit" disabled={!keyword.trim() || !session} className="btn btn-grad" style={{ width: '100%', justifyContent: 'center', padding: '12px 20px', fontSize: 14 }}>
-            <Zap size={14} /> Build Complete Starter Kit
+          <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. AI fitness coach, longevity supplements, Pet Tech" className="input" style={{ marginBottom: 16, fontSize: 14 }} />
+          {error && (
+            <div style={{ padding: '12px 14px', background: 'var(--surface-nogo)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--danger)', marginBottom: 16, lineHeight: 1.5 }}>
+              {error}
+            </div>
+          )}
+          <button type="submit" disabled={!keyword.trim() || !session} className="btn btn-grad" style={{ width: '100%', justifyContent: 'center', padding: '13px 20px', fontSize: 14 }}>
+            <Zap size={15} /> Build Complete Starter Kit
           </button>
         </form>
-        <div style={{ marginTop: 16, padding: '10px 14px', background: 'var(--bg-overlay)', borderRadius: 'var(--radius-md)', fontSize: 11, color: 'var(--text-tertiary)' }}>
-          Real Google Trends - Product ideas - Landing page copy - Reddit communities - Revenue path
+        <div style={{ marginTop: 16, padding: '10px 14px', background: 'var(--bg-overlay)', borderRadius: 'var(--radius-md)', fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+          Real Google Trends data · Product ideas with pricing · 7-day launch plan · Landing page copy · Reddit communities · Revenue path
         </div>
       </div>
     </div>
@@ -240,7 +260,7 @@ function StarterContent() {
 
 export default function StarterPage() {
   return (
-    <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}><div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border-base)', borderTopColor: 'var(--brand-purple)' }} /></div>}>
+    <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}><div className="spinner" style={{ width: 22, height: 22, border: '2px solid var(--border-base)', borderTopColor: 'var(--brand-purple)' }} /></div>}>
       <StarterContent />
     </Suspense>
   );
