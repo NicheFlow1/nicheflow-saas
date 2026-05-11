@@ -1,190 +1,177 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase/client-singleton';
-import { Copy, CheckCircle, Trash2, Heart, Zap, Twitter, Linkedin, Hash, PenLine } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { createBrowserClient } from '@supabase/ssr';
+import { Sparkles, AlertCircle, Copy, Check, Trash2 } from 'lucide-react';
 
-const AUTOPILOT_FN = 'https://aincmpxokmsygyghvtnm.supabase.co/functions/v1/autopilot';
-const PLATFORMS = ['All', 'Twitter', 'LinkedIn', 'Reddit', 'Instagram', 'Email', 'TikTok'];
+const SB_URL = 'https://aincmpxokmsygyghvtnm.supabase.co';
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpbmNtcHhva21zeWd5Z2h2dG5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyODQ4NzAsImV4cCI6MjA4OTg2MDg3MH0.qy9k6S3pgNv7CPnvJlgqeGzgzHBB0J59cCWVsbSa75U';
+const FN = 'https://aincmpxokmsygyghvtnm.supabase.co/functions/v1/autopilot';
+
+const PLATFORMS = ['Twitter','LinkedIn','Reddit','Instagram','TikTok','Email'];
+const TYPES = ['thread','post','story','hook','email','ad'];
+
+function CopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    await navigator.clipboard.writeText(text).catch(() => {});
+    setCopied(true); setTimeout(() => setCopied(false), 2000);
+  }
+  return (
+    <button onClick={copy} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--bg-hover)', border: '1px solid var(--border-base)', color: 'var(--text-muted)', padding: '5px 11px', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>
+      {copied ? <><Check size={11} color="#10b981" /> Copied</> : <><Copy size={11} /> Copy</>}
+    </button>
+  );
+}
 
 export default function ContentPage() {
   const [session, setSession] = useState<any>(null);
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [platform, setPlatform] = useState('Twitter');
-  const [contentType, setContentType] = useState('thread');
-  const [filter, setFilter] = useState('All');
-  const [copied, setCopied] = useState<string | null>(null);
+  const [type, setType] = useState('hook');
+  const [loading, setLoading] = useState(false);
+  const [dots, setDots] = useState('');
   const [error, setError] = useState('');
+  const [library, setLibrary] = useState<any[]>([]);
+  const sb = createBrowserClient(SB_URL, SB_ANON);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
-      if (!s) return;
-      setSession(s);
-      const { data } = await supabase.from('content_library').select('*').eq('user_id', s.user.id).order('created_at', { ascending: false }).limit(50);
-      setItems(data || []);
-      setLoading(false);
+    sb.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      if (data.session) loadLibrary(data.session.access_token);
     });
   }, []);
 
-  async function generate() {
-    if (!keyword.trim() || !session) return;
-    setGenerating(true);
-    setError('');
+  useEffect(() => {
+    if (!loading) return;
+    const iv = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
+    return () => clearInterval(iv);
+  }, [loading]);
+
+  async function loadLibrary(token: string) {
     try {
-      const { data: { session: fr } } = await supabase.auth.getSession();
-      const tok = fr?.access_token || session.access_token;
-      const res = await fetch(AUTOPILOT_FN, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
-        body: JSON.stringify({
-          action: 'generate_content',
-          keyword: keyword.trim(),
-          platform,
-          content_type: contentType,
-          tone: 'authentic and direct',
-          context: 'founder building in this niche'
-        })
+      const r = await fetch(`${SB_URL}/rest/v1/content_library?select=*&order=created_at.desc&limit=20`, {
+        headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` }
       });
-      if (!res.ok) {
-        const text = await res.text();
-        let msg = 'Generation failed';
-        try { msg = JSON.parse(text).error || msg; } catch {}
-        throw new Error(msg);
-      }
-      const d = await res.json();
-      if (!d.ok && d.error) throw new Error(d.error);
-      const { data } = await supabase.from('content_library').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }).limit(50);
-      setItems(data || []);
-    } catch (e: any) {
-      setError(e.message === 'Failed to fetch' ? 'Connection error - please check your internet and try again' : e.message || 'Failed to generate');
-    } finally {
-      setGenerating(false);
-    }
+      if (r.ok) setLibrary(await r.json());
+    } catch {}
   }
 
-  async function toggleFavorite(id: string, current: boolean) {
-    await supabase.from('content_library').update({ is_favorite: !current }).eq('id', id);
-    setItems(prev => prev.map(i => i.id === id ? { ...i, is_favorite: !current } : i));
+  async function generate() {
+    if (!session || !keyword.trim()) return;
+    setLoading(true); setError('');
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 90000);
+      const r = await fetch(FN, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: 'generate_content', keyword: keyword.trim(), platform, type }),
+        signal: ctrl.signal
+      });
+      clearTimeout(timer);
+      if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || `Error ${r.status}`); }
+      const data = await r.json();
+      setLibrary(prev => [{ id: data.id, keyword: keyword.trim(), platform, type, content: data.content, created_at: new Date().toISOString() }, ...prev]);
+    } catch (e: any) {
+      if (e.name === 'AbortError') setError('Request timed out. Please try again.');
+      else setError(e.message || 'Failed to generate content');
+    } finally { setLoading(false); }
   }
 
   async function deleteItem(id: string) {
-    await supabase.from('content_library').delete().eq('id', id);
-    setItems(prev => prev.filter(i => i.id !== id));
+    if (!session) return;
+    await fetch(`${SB_URL}/rest/v1/content_library?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { apikey: SB_ANON, Authorization: `Bearer ${session.access_token}`, Prefer: 'return=minimal' }
+    });
+    setLibrary(prev => prev.filter(i => i.id !== id));
   }
 
-  function copyText(id: string, text: string) {
-    navigator.clipboard.writeText(text);
-    setCopied(id);
-    setTimeout(() => setCopied(null), 2000);
-  }
-
-  const platformIcon = (p: string) => {
-    if (p === 'Twitter') return <Twitter size={11} />;
-    if (p === 'LinkedIn') return <Linkedin size={11} />;
-    if (p === 'Reddit') return <Hash size={11} />;
-    return <PenLine size={11} />;
-  };
-
-  const filtered = items.filter(i => filter === 'All' || i.platform === filter);
+  if (!session) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
+      <div style={{ width: 24, height: 24, border: '2px solid var(--border-base)', borderTopColor: 'var(--brand-purple)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    </div>
+  );
 
   return (
-    <div>
-      <div className="page-header">
-        <h1>Content Studio</h1>
-        <p>Generate and save viral content for any niche — threads, posts, hooks, emails, and more</p>
+    <div style={{ maxWidth: 780, margin: '0 auto', padding: '32px 24px' }}>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 5 }}>
+          <Sparkles size={19} color="var(--brand-purple)" />
+          <h1 style={{ fontSize: 19, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Content Studio</h1>
+        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Generate viral content for any niche. Save to your library.</p>
       </div>
 
-      <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 'var(--radius-2xl)', padding: 24, marginBottom: 24 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 120px auto', gap: 12, alignItems: 'flex-end' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Keyword or Topic</label>
-            <input value={keyword} onChange={e => setKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && generate()} placeholder="e.g. AI productivity tools, longevity supplements" className="input" style={{ fontSize: 13 }} />
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-base)', borderRadius: 14, padding: 22, marginBottom: 24 }}>
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Keyword or Topic</label>
+          <input
+            value={keyword}
+            onChange={e => setKeyword(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && generate()}
+            placeholder="e.g. longevity supplements, AI tools for founders..."
+            style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--border-base)', borderRadius: 8, padding: '9px 13px', color: 'var(--text-primary)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: 14, marginBottom: 16, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 160 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Platform</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {PLATFORMS.map(p => (
+                <button key={p} onClick={() => setPlatform(p)} style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: platform === p ? 'none' : '1px solid var(--border-base)', background: platform === p ? 'var(--brand-purple)' : 'transparent', color: platform === p ? '#fff' : 'var(--text-muted)' }}>{p}</button>
+              ))}
+            </div>
           </div>
-          <div>
-            <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Platform</label>
-            <select value={platform} onChange={e => setPlatform(e.target.value)} className="input" style={{ fontSize: 12 }}>
-              {['Twitter', 'LinkedIn', 'Reddit', 'Instagram', 'TikTok', 'Email'].map(p => <option key={p}>{p}</option>)}
-            </select>
+          <div style={{ flex: 1, minWidth: 160 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Type</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {TYPES.map(t => (
+                <button key={t} onClick={() => setType(t)} style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: type === t ? 'none' : '1px solid var(--border-base)', background: type === t ? 'rgba(139,92,246,.8)' : 'transparent', color: type === t ? '#fff' : 'var(--text-muted)' }}>{t}</button>
+              ))}
+            </div>
           </div>
-          <div>
-            <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Type</label>
-            <select value={contentType} onChange={e => setContentType(e.target.value)} className="input" style={{ fontSize: 12 }}>
-              {['thread', 'post', 'hook', 'story', 'email', 'ad'].map(t => <option key={t}>{t}</option>)}
-            </select>
-          </div>
-          <button onClick={generate} disabled={!keyword.trim() || generating || !session} className="btn btn-grad" style={{ height: 42, gap: 6, alignSelf: 'flex-end' }}>
-            {generating
-              ? <><div className="spinner" style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.3)', borderTopColor: 'white' }} />Generating...</>
-              : <><Zap size={13} />Generate</>}
-          </button>
         </div>
         {error && (
-          <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--surface-nogo)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 10, fontSize: 12, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            {error}
-            <button onClick={() => setError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>x</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 13px', background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 8, marginBottom: 12 }}>
+            <AlertCircle size={14} color="#ef4444" />
+            <span style={{ fontSize: 13, color: '#ef4444' }}>{error}</span>
           </div>
         )}
+        <button
+          onClick={generate}
+          disabled={loading || !keyword.trim()}
+          style={{ width: '100%', background: loading || !keyword.trim() ? 'var(--bg-hover)' : 'var(--brand-purple)', color: loading || !keyword.trim() ? 'var(--text-muted)' : '#fff', border: 'none', padding: '11px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: loading || !keyword.trim() ? 'not-allowed' : 'pointer' }}
+        >
+          {loading ? `Generating${dots}` : 'Generate'}
+        </button>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-        {PLATFORMS.map(p => (
-          <button key={p} onClick={() => setFilter(p)} style={{ padding: '5px 13px', borderRadius: 99, fontSize: 11, fontWeight: 600, background: filter === p ? 'var(--brand-purple)' : 'var(--bg-elevated)', color: filter === p ? 'white' : 'var(--text-tertiary)', border: '1px solid ' + (filter === p ? 'var(--brand-purple)' : 'var(--border-base)'), cursor: 'pointer' }}>
-            {p}
-          </button>
-        ))}
-      </div>
+      {library.length > 0 && (
+        <div>
+          <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 14 }}>Content Library</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {library.map(item => (
+              <div key={item.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-base)', borderRadius: 12, padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-purple)', background: 'rgba(139,92,246,.1)', padding: '2px 8px', borderRadius: 10 }}>{item.platform}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg-hover)', padding: '2px 8px', borderRadius: 10 }}>{item.type}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.keyword}</span>
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                    <CopyBtn text={item.content} />
+                    {item.id && <button onClick={() => deleteItem(item.id)} style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}><Trash2 size={13} /></button>}
+                  </div>
+                </div>
+                <p style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.65, margin: 0, whiteSpace: 'pre-wrap' }}>{item.content}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: 60 }}>
-          <div className="spinner" style={{ width: 22, height: 22, border: '2px solid var(--border-base)', borderTopColor: 'var(--brand-purple)', margin: '0 auto' }} />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 24px', background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 'var(--radius-2xl)' }}>
-          <PenLine size={32} style={{ color: 'var(--text-disabled)', margin: '0 auto 16px' }} />
-          <h3 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: 8 }}>No content yet</h3>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Enter a keyword above and click Generate to create your first piece of viral content.</p>
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gap: 12 }}>
-          {filtered.map((item) => (
-            <div key={item.id} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-base)', borderRadius: 'var(--radius-xl)', padding: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'rgba(99,102,241,.1)', color: 'var(--brand-purple)', border: '1px solid rgba(99,102,241,.2)', textTransform: 'uppercase' }}>
-                    {platformIcon(item.platform)}{item.platform || 'General'}
-                  </span>
-                  <span style={{ fontSize: 10, color: 'var(--text-disabled)', textTransform: 'uppercase' }}>{item.type}</span>
-                  {item.keyword && <span style={{ fontSize: 10, color: 'var(--text-disabled)', background: 'var(--bg-overlay)', padding: '1px 7px', borderRadius: 4 }}>{item.keyword}</span>}
-                </div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <button onClick={() => toggleFavorite(item.id, item.is_favorite)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: item.is_favorite ? '#f59e0b' : 'var(--text-disabled)', padding: 6, borderRadius: 6 }}>
-                    <Heart size={14} fill={item.is_favorite ? 'currentColor' : 'none'} />
-                  </button>
-                  <button onClick={() => copyText(item.id, item.content)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied === item.id ? 'var(--success)' : 'var(--text-disabled)', padding: 6, borderRadius: 6 }}>
-                    {copied === item.id ? <CheckCircle size={14} /> : <Copy size={14} />}
-                  </button>
-                  <button onClick={() => deleteItem(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 6, borderRadius: 6 }}>
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.75, whiteSpace: 'pre-wrap', background: 'var(--bg-overlay)', padding: '14px 16px', borderRadius: 10, border: '1px solid var(--border-subtle)' }}>
-                {item.content}
-              </div>
-              {item.metadata?.hook && (
-                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--brand-purple)', background: 'rgba(99,102,241,.06)', padding: '6px 10px', borderRadius: 6, borderLeft: '2px solid var(--brand-purple)' }}>
-                  Hook: {item.metadata.hook}
-                </div>
-              )}
-              {item.metadata?.best_time && (
-                <div style={{ marginTop: 6, fontSize: 10, color: 'var(--text-disabled)' }}>
-                  Best time to post: {item.metadata.best_time}
-                </div>
-              )}
-            </div>
-          ))}
+      {library.length === 0 && !loading && (
+        <div style={{ textAlign: 'center', padding: '40px 24px', border: '1px dashed var(--border-base)', borderRadius: 12 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No content yet. Generate your first piece above.</p>
         </div>
       )}
     </div>
