@@ -1,38 +1,45 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
+import React, { useState, useEffect, useRef } from 'react';
+import { getSupabaseClient } from '@/lib/supabase/client-singleton';
 import { Zap, Package, Plus, AlertCircle, RefreshCw } from 'lucide-react';
 
-const SB_URL = 'https://aincmpxokmsygyghvtnm.supabase.co';
-const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpbmNtcHhva21zeWd5Z2h2dG5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyODQ4NzAsImV4cCI6MjA4OTg2MDg3MH0.qy9k6S3pgNv7CPnvJlgqeGzgzHBB0J59cCWVsbSa75U';
 const FN = 'https://aincmpxokmsygyghvtnm.supabase.co/functions/v1/autopilot';
 
 export default function AutopilotPage() {
   const [session, setSession] = useState<any>(null);
+  const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [dots, setDots] = useState('');
   const [briefing, setBriefing] = useState<any>(null);
   const [error, setError] = useState('');
   const [kits, setKits] = useState<any[]>([]);
-  const sb = createBrowserClient(SB_URL, SB_ANON);
+  const sbRef = useRef(getSupabaseClient());
 
   useEffect(() => {
+    const sb = sbRef.current;
     sb.auth.getSession().then(({ data }) => {
       setSession(data.session);
+      setReady(true);
       if (data.session) loadKits(data.session.access_token);
     });
+    const { data: { subscription } } = sb.auth.onAuthStateChange((_e, s) => {
+      setSession(s);
+      setReady(true);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!loading) return;
+    if (!loading) { setDots(''); return; }
     const iv = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
     return () => clearInterval(iv);
   }, [loading]);
 
   async function loadKits(token: string) {
     try {
-      const r = await fetch(`${SB_URL}/rest/v1/starter_kits?select=id,keyword,created_at&order=created_at.desc&limit=6`, {
-        headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` }
+      const { SUPABASE_URL, SUPABASE_ANON } = await import('@/lib/supabase/client-singleton');
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/starter_kits?select=id,keyword,created_at&order=created_at.desc&limit=6`, {
+        headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${token}` }
       });
       if (r.ok) setKits(await r.json());
     } catch {}
@@ -54,16 +61,21 @@ export default function AutopilotPage() {
       if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || `Error ${r.status}`); }
       setBriefing(await r.json());
     } catch (e: any) {
-      if (e.name === 'AbortError') setError('Request timed out. The AI is busy — please try again.');
+      if (e.name === 'AbortError') setError('Request timed out — please try again.');
       else setError(e.message || 'Failed to load briefing');
     } finally { setLoading(false); }
   }
 
-  if (!session) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
-      <div style={{ width: 24, height: 24, border: '2px solid var(--border-base)', borderTopColor: 'var(--brand-purple)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+  if (!ready) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+      <div style={{ width: 28, height: 28, border: '2px solid var(--border-base)', borderTopColor: 'var(--brand-purple)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
     </div>
   );
+
+  if (!session) {
+    if (typeof window !== 'undefined') window.location.href = '/auth/login';
+    return null;
+  }
 
   return (
     <div style={{ maxWidth: 820, margin: '0 auto', padding: '32px 24px' }}>
@@ -86,14 +98,14 @@ export default function AutopilotPage() {
         </div>
       )}
 
-      {!briefing && !loading && !error && (
+      {!briefing && !loading && (
         <div style={{ textAlign: 'center', padding: '56px 24px', background: 'var(--bg-card)', border: '1px solid var(--border-base)', borderRadius: 16, marginBottom: 28 }}>
           <div style={{ width: 52, height: 52, background: 'rgba(139,92,246,.12)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
             <Zap size={26} color="var(--brand-purple)" />
           </div>
           <h2 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Get Your Daily Intelligence Briefing</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 22, maxWidth: 380, margin: '0 auto 22px' }}>ARIA scans 3 real markets using Google Trends and returns GO signals with actionable intelligence. Takes 30-60 seconds.</p>
-          <button onClick={getBriefing} style={{ background: 'var(--brand-purple)', color: '#fff', border: 'none', padding: '11px 26px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 22, maxWidth: 380, margin: '0 auto 22px' }}>ARIA scans real markets using Google Trends and returns GO signals with actionable intelligence. Takes 30-60 seconds.</p>
+          <button onClick={getBriefing} style={{ background: 'var(--brand-purple)', color: '#fff', border: 'none', padding: '11px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             Get Today&apos;s Briefing
           </button>
         </div>
@@ -103,7 +115,7 @@ export default function AutopilotPage() {
         <div style={{ textAlign: 'center', padding: '56px 24px', background: 'var(--bg-card)', border: '1px solid var(--border-base)', borderRadius: 16, marginBottom: 28 }}>
           <div style={{ width: 32, height: 32, border: '2px solid var(--border-base)', borderTopColor: 'var(--brand-purple)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 18px' }} />
           <p style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 15, margin: '0 0 6px' }}>Scanning markets{dots}</p>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Fetching Google Trends data + AI analysis. Takes 30-60 seconds.</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Real Google Trends + AI analysis · 30-60 seconds</p>
         </div>
       )}
 
@@ -115,14 +127,12 @@ export default function AutopilotPage() {
               <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{briefing.date}</span>
             </div>
             <h2 style={{ fontSize: 19, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>{briefing.top_signal?.niche}</h2>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' as const }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#10b981' }}>Score: {briefing.top_signal?.score}/100</span>
               <span style={{ fontSize: 12, padding: '2px 10px', background: briefing.top_signal?.signal === 'GO' ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)', color: briefing.top_signal?.signal === 'GO' ? '#10b981' : '#f59e0b', borderRadius: 20, fontWeight: 700 }}>{briefing.top_signal?.signal}</span>
             </div>
-            {briefing.top_signal?.why_now && (
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: 16 }}>{briefing.top_signal.why_now}</p>
-            )}
-            <div style={{ display: 'flex', gap: 10 }}>
+            {briefing.top_signal?.why_now && <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: 16 }}>{briefing.top_signal.why_now}</p>}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const }}>
               <a href="/autopilot/starter" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--brand-purple)', color: '#fff', padding: '9px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
                 <Package size={13} /> Build Starter Kit
               </a>
@@ -131,12 +141,11 @@ export default function AutopilotPage() {
               </button>
             </div>
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 10, marginBottom: 28 }}>
             {briefing.opportunities?.map((opp: any, i: number) => (
               <div key={i} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-base)', borderRadius: 12, padding: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: opp.signal === 'GO' ? '#10b981' : opp.signal === 'WATCH' ? '#f59e0b' : 'var(--text-muted)', background: opp.signal === 'GO' ? 'rgba(16,185,129,.1)' : 'rgba(245,158,11,.1)', padding: '2px 7px', borderRadius: 10 }}>{opp.signal}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: opp.signal === 'GO' ? '#10b981' : '#f59e0b', background: opp.signal === 'GO' ? 'rgba(16,185,129,.1)' : 'rgba(245,158,11,.1)', padding: '2px 7px', borderRadius: 10 }}>{opp.signal}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{opp.score}</span>
                 </div>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>{opp.niche}</p>
