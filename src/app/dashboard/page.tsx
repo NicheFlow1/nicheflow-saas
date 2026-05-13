@@ -1,115 +1,109 @@
-'use client'
-import{useEffect,useState}from'react'
-import Link from'next/link'
-import{supabase}from'@/lib/supabase/client-singleton'
-import{Search,TrendingUp,ChevronRight,Activity,Database,Bell,Zap,Plus,CheckCircle,XCircle,Clock}from'lucide-react'
+'use client';
+import React, { useEffect, useState, useRef } from 'react';
+import Link from 'next/link';
+import { getSupabaseClient } from '@/lib/supabase/client-singleton';
+import { Zap, TrendingUp, Package, Plus } from 'lucide-react';
 
-function SignalDot({v}:{v:string}){
-  const c=v==='GO'?'var(--success)':v==='NO_GO'?'var(--danger)':v==='WAIT'?'var(--warning)':'var(--text-disabled)'
-  return<div style={{width:7,height:7,borderRadius:'50%',background:c,flexShrink:0}}/>
-}
+export default function DashboardPage() {
+  const [profile, setProfile] = useState<any>(null);
+  const [reports, setReports] = useState<any[]>([]);
+  const [kits, setKits] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const sbRef = useRef(getSupabaseClient());
 
-export default function DashboardPage(){
-  const[profile,setProfile]=useState<any>(null)
-  const[reports,setReports]=useState<any[]>([])
-  const[radarItems,setRadarItems]=useState<any[]>([])
-  const[alerts,setAlerts]=useState<any[]>([])
-  const[loading,setLoading]=useState(true)
+  useEffect(() => {
+    const sb = sbRef.current;
+    sb.auth.getSession().then(async ({ data: { session } }: any) => {
+      if (!session) return;
+      const uid = session.user.id;
+      const [{ data: pr }, { data: rp }, { data: kt }] = await Promise.all([
+        sb.from('profiles').select('*').eq('id', uid).single(),
+        sb.from('validation_reports').select('id,keyword,signal,overall_score,created_at').eq('user_id', uid).order('created_at', { ascending: false }).limit(6),
+        sb.from('starter_kits').select('id,keyword,created_at').eq('user_id', uid).order('created_at', { ascending: false }).limit(4),
+      ]);
+      setProfile(pr);
+      setReports(rp || []);
+      setKits(kt || []);
+      setLoading(false);
+    });
+  }, []);
 
-  useEffect(()=>{
-    supabase.auth.getSession().then(async({data:{session}})=>{
-      if(!session)return
-      const uid=session.user.id
-      const[{data:pr},{data:rp},{data:ri},{data:al}]=await Promise.all([
-        supabase.from('profiles').select('*').eq('id',uid).single(),
-        supabase.from('validation_reports').select('id,keyword,signal,overall_score,trend_score,data_sources,created_at').eq('user_id',uid).order('created_at',{ascending:false}).limit(8),
-        supabase.from('radar').select('*').eq('user_id',uid).eq('is_active',true).order('overall_score',{ascending:false}).limit(5),
-        supabase.from('radar_alerts').select('*').eq('user_id',uid).eq('is_read',false).order('created_at',{ascending:false}).limit(3)
-      ])
-      setProfile(pr);setReports(rp||[]);setRadarItems(ri||[]);setAlerts(al||[]);setLoading(false)
-    })
-  },[])
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
+      <div style={{ width: 24, height: 24, border: '2px solid var(--border-base)', borderTopColor: 'var(--brand-purple)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    </div>
+  );
 
-  async function dismissAlert(id:string){await supabase.from('radar_alerts').update({is_read:true}).eq('id',id);setAlerts(a=>a.filter(x=>x.id!==id))}
+  const used = profile?.generations_used || 0;
+  const limit = profile?.generations_limit || 7;
 
-  if(loading)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:400}}><div className='spinner' style={{width:20,height:20,border:'2px solid var(--border-base)',borderTopColor:'var(--brand-purple)'}}/></div>
+  return (
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px' }}>
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px' }}>Dashboard</h1>
+        <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0 }}>Welcome back. Here is your market intelligence overview.</p>
+      </div>
 
-  const used=profile?.generations_used||0,limit=profile?.generations_limit||7
-  const goCount=radarItems.filter(r=>r.signal==='GO').length
-  const hasRealData=reports.some(r=>r.data_sources?.some((s:string)=>s.includes('Google')))
-
-  return(
-    <div>
-      <div className='page-header'><h1>Dashboard</h1><p>Your trend validation workspace</p></div>
-
-      {alerts.map(a=>(
-        <div key={a.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:'rgba(99,102,241,0.06)',border:'1px solid rgba(99,102,241,0.2)',borderRadius:'var(--radius-lg)',marginBottom:8}}>
-          <Bell size={12} style={{color:'var(--brand-purple)',flexShrink:0}}/>
-          <span style={{fontSize:12,color:'var(--text-secondary)',flex:1}}>{a.message}</span>
-          <button onClick={()=>dismissAlert(a.id)} style={{fontSize:10,color:'var(--text-disabled)',background:'none',border:'none',cursor:'pointer'}}>dismiss</button>
-        </div>
-      ))}
-
-      <div className='grid-4' style={{marginBottom:24}}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12, marginBottom: 32 }}>
         {[
-          {label:'Reports Run',val:reports.length,icon:'📊',bg:'rgba(99,102,241,0.1)',col:'var(--brand-purple)'},
-          {label:'GO Signals',val:goCount,icon:'✅',bg:'rgba(34,197,94,0.1)',col:'var(--success)'},
-          {label:'Radar Markets',val:radarItems.length,icon:'📶',bg:'rgba(6,182,212,0.1)',col:'var(--info)'},
-          {label:'Credits Left',val:limit-used,icon:'⚡',bg:'rgba(245,158,11,0.1)',col:'var(--warning)'},
-        ].map(({label,val,icon,bg,col})=>(
-          <div key={label} className='stat-card'>
-            <div className='stat-icon' style={{background:bg}}><span style={{fontSize:16}}>{icon}</span></div>
-            <div className='stat-value' style={{color:col}}>{val}</div>
-            <div className='stat-label'>{label}</div>
+          { label: 'Generations', value: `${used}/${limit}`, icon: <Zap size={16} color="var(--brand-purple)" /> },
+          { label: 'Reports', value: reports.length, icon: <TrendingUp size={16} color="#10b981" /> },
+          { label: 'Starter Kits', value: kits.length, icon: <Package size={16} color="#f59e0b" /> },
+          { label: 'Plan', value: (profile?.plan || 'free').toUpperCase(), icon: <Zap size={16} color="#6366f1" /> },
+        ].map((s, i) => (
+          <div key={i} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-base)', borderRadius: 12, padding: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>{s.icon}<span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>{s.label}</span></div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>{s.value}</div>
           </div>
         ))}
       </div>
 
-      {!hasRealData&&reports.length>0&&(
-        <div style={{display:'flex',alignItems:'flex-start',gap:10,padding:'12px 14px',background:'rgba(245,158,11,0.06)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:'var(--radius-lg)',marginBottom:16}}>
-          <Database size={14} style={{color:'var(--warning)',flexShrink:0,marginTop:1}}/>
-          <div><div style={{fontSize:12,fontWeight:700,color:'var(--warning)',marginBottom:2}}>SerpAPI Key Not Configured</div><div style={{fontSize:11,color:'var(--text-tertiary)'}}>Reports currently show AI-only analysis without real Google Trends data. Add your SerpAPI key in Supabase secrets to enable real data.</div></div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-base)', borderRadius: 14, padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Recent Reports</h3>
+            <Link href="/validate" style={{ fontSize: 12, color: 'var(--brand-purple)', textDecoration: 'none' }}>+ New</Link>
+          </div>
+          {reports.length === 0 ? (
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>No reports yet. <Link href="/validate" style={{ color: 'var(--brand-purple)', textDecoration: 'none' }}>Validate a trend</Link></p>
+          ) : reports.map(r => (
+            <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{r.keyword}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: r.signal === 'GO' ? 'rgba(16,185,129,.1)' : 'rgba(245,158,11,.1)', color: r.signal === 'GO' ? '#10b981' : '#f59e0b' }}>{r.signal || 'WATCH'}</span>
+            </div>
+          ))}
         </div>
-      )}
 
-      <div className='card' style={{marginBottom:16}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderBottom:'1px solid var(--border-base)'}}>
-          <div style={{display:'flex',alignItems:'center',gap:8}}><Activity size={14} style={{color:'var(--brand-purple)'}}/><span style={{fontSize:11,fontWeight:700,color:'var(--brand-purple)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Recent Validations</span></div>
-          <Link href='/projects' style={{display:'flex',alignItems:'center',gap:4,fontSize:11,color:'var(--text-tertiary)',textDecoration:'none'}}>All<ChevronRight size={11}/></Link>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-base)', borderRadius: 14, padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Starter Kits</h3>
+            <Link href="/autopilot/starter" style={{ fontSize: 12, color: 'var(--brand-purple)', textDecoration: 'none' }}>+ New</Link>
+          </div>
+          {kits.length === 0 ? (
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>No kits yet. <Link href="/autopilot/starter" style={{ color: 'var(--brand-purple)', textDecoration: 'none' }}>Build one</Link></p>
+          ) : kits.map(k => (
+            <Link key={k.id} href={`/autopilot/kit/${k.id}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)', textDecoration: 'none' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{k.keyword}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(k.created_at).toLocaleDateString()}</span>
+            </Link>
+          ))}
         </div>
-        {!reports.length?(
-          <div className='empty-state'>
-            <p className='empty-title'>No validations yet</p>
-            <p className='empty-desc'>Validate a trend to see real Google Trends data</p>
-            <Link href='/validate' className='btn btn-primary btn-sm'><Search size={12}/>Validate a Trend</Link>
-          </div>
-        ):(
-          <div>
-            {reports.map((r:any)=>(
-              <div key={r.id} style={{display:'flex',alignItems:'center',gap:12,padding:'11px 20px',borderBottom:'1px solid rgba(255,255,255,0.025)'}}>
-                <SignalDot v={r.signal}/>
-                <span style={{fontSize:13,fontWeight:600,color:'var(--text-primary)',flex:1}}>{r.keyword}</span>
-                {r.data_sources?.some((s:string)=>s.includes('Google'))&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:3,background:'rgba(34,197,94,0.08)',color:'var(--success)',border:'1px solid rgba(34,197,94,0.15)',fontFamily:'monospace'}}>REAL DATA</span>}
-                <span style={{fontSize:11,fontWeight:700,color:r.overall_score>=65?'var(--success)':r.overall_score>=40?'var(--warning)':'var(--danger)'}}>{r.overall_score||0}</span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
-      <div className='grid-3'>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12 }}>
         {[
-          {href:'/validate',label:'Validate a Trend',desc:'Real Google Trends data analysis',icon:'🔍'},
-          {href:'/radar',label:'Market Radar',desc:'Track markets over time',icon:'📶'},
-          {href:'/projects',label:'All Reports',desc:'Your validation history',icon:'📊'},
-        ].map(({href,label,desc,icon})=>(
-          <Link key={label} href={href} className='card card-hover' style={{padding:18,textDecoration:'none',display:'block'}}>
-            <div style={{fontSize:22,marginBottom:10}}>{icon}</div>
-            <div style={{fontSize:13,fontWeight:700,color:'var(--text-primary)',marginBottom:3}}>{label}</div>
-            <div style={{fontSize:11,color:'var(--text-tertiary)'}}>{desc}</div>
+          { href: '/autopilot', label: 'Get Briefing', desc: 'Daily GO signals', icon: <Zap size={18} color="var(--brand-purple)" /> },
+          { href: '/autopilot/starter', label: 'Build Kit', desc: 'Complete starter kit', icon: <Package size={18} color="#10b981" /> },
+          { href: '/validate', label: 'Validate Trend', desc: 'Real Google Trends', icon: <TrendingUp size={18} color="#f59e0b" /> },
+          { href: '/content', label: 'Create Content', desc: 'Viral posts & hooks', icon: <Plus size={18} color="#6366f1" /> },
+        ].map((a, i) => (
+          <Link key={i} href={a.href} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-base)', borderRadius: 12, padding: 16, textDecoration: 'none', display: 'block' }}>
+            <div style={{ marginBottom: 8 }}>{a.icon}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{a.label}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{a.desc}</div>
           </Link>
         ))}
       </div>
     </div>
-  )
+  );
 }
