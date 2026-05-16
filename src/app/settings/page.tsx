@@ -1,7 +1,14 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import { getSupabaseClient } from '@/lib/supabase/client-singleton';
-import { User, CreditCard, Zap, Crown } from 'lucide-react';
+import { User, CreditCard, Zap, Crown, Palette } from 'lucide-react';
+
+const THEMES = [
+  { id:'dark', label:'Dark', bg:'#08090d', accent:'#6366f1' },
+  { id:'midnight', label:'Midnight', bg:'#000000', accent:'#8b5cf6' },
+  { id:'light', label:'Light', bg:'#f8f9fc', accent:'#6366f1' },
+  { id:'purple', label:'Purple', bg:'#0d0a1a', accent:'#a78bfa' },
+];
 
 export default function SettingsPage() {
   const [session, setSession] = useState<any>(null);
@@ -9,9 +16,13 @@ export default function SettingsPage() {
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [theme, setTheme] = useState('dark');
   const sbRef = useRef(getSupabaseClient());
 
   useEffect(() => {
+    const saved = localStorage.getItem('nf-theme') || 'dark';
+    setTheme(saved);
+    document.documentElement.setAttribute('data-theme', saved);
     const sb = sbRef.current;
     sb.auth.getSession().then(async ({ data }: any) => {
       setSession(data.session);
@@ -22,6 +33,12 @@ export default function SettingsPage() {
       }
     });
   }, []);
+
+  function applyTheme(t: string) {
+    setTheme(t);
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('nf-theme', t);
+  }
 
   async function saveProfile() {
     if (!session) return;
@@ -38,7 +55,7 @@ export default function SettingsPage() {
     <div style={{ maxWidth:640,margin:'0 auto',padding:'32px 24px' }}>
       <h1 style={{ fontSize:20,fontWeight:700,color:'var(--text-primary)',marginBottom:24 }}>Settings</h1>
 
-      <div style={{ background:'var(--bg-card)',border:'1px solid var(--border-base)',borderRadius:14,padding:22,marginBottom:16 }}>
+      <div style={{ background:'var(--bg-card)',border:'1px solid var(--border-base)',borderRadius:14,padding:22,marginBottom:14 }}>
         <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:16 }}>
           <User size={16} color="var(--text-muted)"/>
           <h3 style={{ fontSize:14,fontWeight:600,color:'var(--text-primary)',margin:0 }}>Profile</h3>
@@ -56,35 +73,50 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      <div style={{ background:'var(--bg-card)',border:'1px solid var(--border-base)',borderRadius:14,padding:22,marginBottom:16 }}>
-        <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16 }}>
+      <div style={{ background:'var(--bg-card)',border:'1px solid var(--border-base)',borderRadius:14,padding:22,marginBottom:14 }}>
+        <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:16 }}>
+          <Palette size={16} color="var(--text-muted)"/>
+          <h3 style={{ fontSize:14,fontWeight:600,color:'var(--text-primary)',margin:0 }}>Theme</h3>
+        </div>
+        <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8 }}>
+          {THEMES.map(t => (
+            <button key={t.id} onClick={()=>applyTheme(t.id)} style={{ padding:'12px 8px',borderRadius:10,border:`2px solid ${theme===t.id?'var(--brand-purple)':'var(--border-base)'}`,background:'var(--bg-base)',cursor:'pointer',textAlign:'center' as const }}>
+              <div style={{ width:28,height:28,borderRadius:8,background:t.bg,border:'1px solid rgba(255,255,255,0.1)',margin:'0 auto 6px',position:'relative',overflow:'hidden' }}>
+                <div style={{ position:'absolute',bottom:0,right:0,width:12,height:12,borderRadius:'4px 0 0 0',background:t.accent }}/>
+              </div>
+              <div style={{ fontSize:11,fontWeight:600,color:theme===t.id?'var(--brand-purple)':'var(--text-muted)' }}>{t.label}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ background:'var(--bg-card)',border:'1px solid var(--border-base)',borderRadius:14,padding:22,marginBottom:14 }}>
+        <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14 }}>
           <div style={{ display:'flex',alignItems:'center',gap:8 }}>
             <Zap size={16} color="var(--brand-purple)"/>
             <h3 style={{ fontSize:14,fontWeight:600,color:'var(--text-primary)',margin:0 }}>Usage</h3>
           </div>
-          <span style={{ fontSize:12,fontWeight:700,color:'var(--brand-purple)',background:'rgba(139,92,246,.1)',padding:'3px 10px',borderRadius:20,textTransform:'uppercase' as const }}>{plan}</span>
+          <span style={{ fontSize:11,fontWeight:700,color:'var(--brand-purple)',background:'rgba(139,92,246,.1)',padding:'3px 10px',borderRadius:20,textTransform:'uppercase' as const }}>{plan}</span>
         </div>
-        <div style={{ marginBottom:8,display:'flex',justifyContent:'space-between',fontSize:13 }}>
+        <div style={{ display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:6 }}>
           <span style={{ color:'var(--text-muted)' }}>Generations used</span>
           <span style={{ color:'var(--text-primary)',fontWeight:600 }}>{used}/{limit}</span>
         </div>
-        <div style={{ height:6,background:'var(--bg-hover)',borderRadius:3,overflow:'hidden' }}>
-          <div style={{ height:'100%',width:`${Math.min(100,(used/limit)*100)}%`,background:used>=limit?'#ef4444':'var(--brand-purple)',borderRadius:3,transition:'width 0.3s' }}/>
+        <div style={{ height:6,background:'var(--bg-hover)',borderRadius:3,overflow:'hidden',marginBottom:8 }}>
+          <div style={{ height:'100%',width:`${Math.min(100,(used/limit)*100)}%`,background:used>=limit?'#ef4444':'var(--brand-purple)',borderRadius:3 }}/>
         </div>
-        {used >= limit && <p style={{ fontSize:12,color:'#ef4444',margin:'8px 0 0' }}>Credit limit reached. Upgrade to continue.</p>}
+        {used>=limit && <p style={{ fontSize:12,color:'#ef4444',margin:0 }}>Limit reached. Upgrade to continue.</p>}
       </div>
 
       <div style={{ background:'linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.05))',border:'1px solid rgba(99,102,241,.25)',borderRadius:14,padding:22 }}>
-        <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:10 }}>
+        <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:8 }}>
           <Crown size={16} color="#6366f1"/>
           <h3 style={{ fontSize:14,fontWeight:600,color:'var(--text-primary)',margin:0 }}>Upgrade Plan</h3>
         </div>
-        <p style={{ fontSize:13,color:'var(--text-muted)',margin:'0 0 14px' }}>Get more generations, advanced features, and priority AI access.</p>
-        <div style={{ display:'flex',gap:10 }}>
-          <a href="/settings/billing" style={{ background:'#6366f1',color:'#fff',border:'none',padding:'10px 20px',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
-            <CreditCard size={14}/> View Plans & Billing
-          </a>
-        </div>
+        <p style={{ fontSize:13,color:'var(--text-muted)',margin:'0 0 14px' }}>More generations, advanced features, and priority AI access.</p>
+        <a href="/settings/billing" style={{ display:'inline-flex',alignItems:'center',gap:6,background:'#6366f1',color:'#fff',padding:'9px 18px',borderRadius:8,fontSize:13,fontWeight:700,textDecoration:'none' }}>
+          <CreditCard size={13}/> View Plans & Billing
+        </a>
       </div>
     </div>
   );
