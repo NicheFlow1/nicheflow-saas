@@ -1,175 +1,134 @@
-'use client'
-import{useEffect,useState}from'react'
-import{useSearchParams}from'next/navigation'
-import{supabase}from'@/lib/supabase/client-singleton'
-import{Zap,TrendingUp,DollarSign,AlertTriangle,CheckCircle,XCircle,Clock,Sparkles,ChevronDown,ChevronUp,BookmarkPlus,Shield,Rocket}from'lucide-react'
+'use client';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { getSupabaseClient } from '@/lib/supabase/client-singleton';
+import { useSearchParams } from 'next/navigation';
+import { Zap, AlertCircle, RefreshCw } from 'lucide-react';
 
-const SUPA_FN='https://aincmpxokmsygyghvtnm.supabase.co/functions/v1/analyze-opportunity'
-const MODES=[
-  {id:'analyze',label:'Deep Analysis',desc:'Surgical market breakdown'},
-  {id:'discover',label:'Discover 3 Niches',desc:'Find hidden opportunities'},
-  {id:'trend',label:'Trend Analysis',desc:'Lifecycle and timing intel'},
-  {id:'compete',label:'Competition X-Ray',desc:'Map the full battlefield'}
-]
-const PH:Record<string,string>={
-  analyze:'Enter a niche, market or idea to analyze...',
-  discover:'Enter a broad space to explore 3 hidden niches...',
-  trend:'Enter a trend or keyword to analyze its lifecycle...',
-  compete:'Enter a market to X-Ray the competition...'
-}
+const FN = 'https://aincmpxokmsygyghvtnm.supabase.co/functions/v1/analyze-opportunity';
 
-function GoNoBadge({v}:{v:string}){
-  if(v==='GO')return<span className='badge badge-go'><CheckCircle size={9}/>GO</span>
-  if(v==='NO_GO')return<span className='badge badge-nogo'><XCircle size={9}/>NO GO</span>
-  if(v==='WAIT')return<span className='badge badge-wait'><Clock size={9}/>WAIT</span>
-  return<span className='badge badge-neutral'>ANALYZING</span>
-}
+const MODES = [
+  { id:'deep', label:'Deep Analysis', sub:'Surgical market breakdown' },
+  { id:'discover', label:'Discover 3 Niches', sub:'Find hidden opportunities' },
+  { id:'trend', label:'Trend Analysis', sub:'Lifecycle and timing intel' },
+  { id:'compete', label:'Competition X-Ray', sub:'Map the full battlefield' },
+];
 
-function ScoreRing({score}:{score:number}){
-  const c=score>=80?'var(--success)':score>=60?'var(--warning)':'var(--danger)'
-  const r=28,circ=2*Math.PI*r,dash=circ*(score/100)
-  return(
-    <svg width={64} height={64} style={{transform:'rotate(-90deg)',flexShrink:0}}>
-      <circle cx={32} cy={32} r={r} fill='none' stroke='var(--bg-subtle)' strokeWidth={3}/>
-      <circle cx={32} cy={32} r={r} fill='none' stroke={c} strokeWidth={3}
-        strokeDasharray={circ} strokeDashoffset={circ-dash} strokeLinecap='round'/>
-      <text x={32} y={33} textAnchor='middle' dominantBaseline='middle'
-        fill={c} fontSize={13} fontWeight='bold'
-        style={{transform:'rotate(90deg)',transformOrigin:'32px 32px'}}>{score}</text>
-    </svg>
-  )
-}
+function GeneratorContent() {
+  const params = useSearchParams();
+  const prefill = params?.get('keyword') || '';
+  const [session, setSession] = useState<any>(null);
+  const [ready, setReady] = useState(false);
+  const [mode, setMode] = useState('deep');
+  const [input, setInput] = useState(prefill);
+  const [loading, setLoading] = useState(false);
+  const [dots, setDots] = useState('');
+  const [error, setError] = useState('');
+  const [result, setResult] = useState<any>(null);
+  const [credits, setCredits] = useState<any>(null);
+  const sbRef = useRef(getSupabaseClient());
 
-function Bar({label,score,color}:{label:string,score:number,color:string}){
-  return(
-    <div className='metric-row'><div className='metric-header'><span className='metric-name'>{label}</span><span className='metric-val'>{score}</span></div><div className='metric-track'><div className={'metric-fill '+color} style={{width:score+'%'}}/></div></div>
-  )
-}
+  useEffect(() => {
+    const sb = sbRef.current;
+    sb.auth.getSession().then(async ({ data }: any) => {
+      setSession(data.session);
+      setReady(true);
+      if (data.session) {
+        const { data: pr } = await sb.from('profiles').select('generations_used,generations_limit').eq('id', data.session.user.id).single();
+        setCredits(pr);
+      }
+    });
+    const { data: { subscription } } = sb.auth.onAuthStateChange((_e: any, s: any) => { setSession(s); setReady(true); });
+    return () => subscription.unsubscribe();
+  }, []);
 
-function Coll({title,Icon,children,open:def=true}:{title:string,Icon:any,children:React.ReactNode,open?:boolean}){
-  const[open,setOpen]=useState(def)
-  return(
-    <div className='section'>
-      <div className='section-header' onClick={()=>setOpen(o=>!o)}>
-        <div className='section-title'><Icon size={12}/>{title}</div>
-        {open?<ChevronUp size={12} style={{color:'var(--text-disabled)'}}/>:<ChevronDown size={12} style={{color:'var(--text-disabled)'}}/>}
+  useEffect(() => {
+    if (!loading) { setDots(''); return; }
+    const iv = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
+    return () => clearInterval(iv);
+  }, [loading]);
+
+  async function analyze() {
+    if (!session || !input.trim()) return;
+    setLoading(true); setError(''); setResult(null);
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 90000);
+      const r = await fetch(FN, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${session.access_token}` },
+        body: JSON.stringify({ niche: input.trim(), mode }),
+        signal: ctrl.signal
+      });
+      clearTimeout(timer);
+      if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error || `Error ${r.status}`); }
+      setResult(await r.json());
+    } catch (e: any) {
+      if (e.name === 'AbortError') setError('Request timed out. Please try again.');
+      else setError(e.message || 'Analysis failed');
+    } finally { setLoading(false); }
+  }
+
+  if (!ready) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'60vh' }}><div style={{ width:28,height:28,border:'2px solid var(--border-base)',borderTopColor:'var(--brand-purple)',borderRadius:'50%',animation:'spin 0.8s linear infinite' }}/></div>;
+  if (!session) { if (typeof window !== 'undefined') window.location.href='/auth/login'; return null; }
+
+  return (
+    <div style={{ maxWidth:800,margin:'0 auto',padding:'32px 24px' }}>
+      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:24 }}>
+        <div>
+          <h1 style={{ fontSize:20,fontWeight:700,color:'var(--text-primary)',margin:'0 0 4px' }}>Intelligence Engine</h1>
+          <p style={{ fontSize:14,color:'var(--text-muted)',margin:0 }}>Analyze any market — results linked to your Radar</p>
+        </div>
+        {credits && <span style={{ fontSize:12,fontWeight:600,color:'var(--text-muted)',background:'var(--bg-card)',border:'1px solid var(--border-base)',padding:'4px 10px',borderRadius:20 }}>{credits.generations_used}/{credits.generations_limit} CREDITS</span>}
       </div>
-      {open&&<div className='section-body'>{children}</div>}
-    </div>
-  )
-}
 
-function OppCard({opp,onSave}:{opp:any,onSave:(id:string)=>void}){
-  const ai=opp.raw_ai_output||{}
-  const exec=ai.execution_pipeline||{}
-  const mono=ai.monetization_intelligence||{}
-  const map=ai.market_map||{}
-  const[saved,setSaved]=useState(false)
-  const sc=opp.overall_score||0
-  const metrics:Array<[string,number,string]>=[
-    ['Demand',opp.demand_score||0,'bg-indigo-500'],['Low Comp',opp.competition_score||0,'bg-emerald-500'],
-    ['Revenue',opp.monetization_score||0,'bg-amber-500'],['Scale',opp.scalability_score||0,'bg-pink-500'],
-    ['Timing',opp.timing_score||0,'bg-violet-500'],['Viral',opp.virality_score||0,'bg-cyan-500'],['Longevity',opp.longevity_score||0,'bg-orange-500']
-  ]
-  const phases:Array<[string,string]>=[['week1_2','Week 1-2'],['month1','Month 1'],['month2_3','Month 2-3'],['month4_6','Month 4-6']]
-  return(
-    <div className='opp-card fade-up'>
-      <div className='opp-hero'>
-        <div className='opp-header'>
-          <div style={{flex:1}}>
-            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:6}}>
-              <GoNoBadge v={opp.go_no_go||ai.go_no_go||'ANALYZING'}/>
-              <span className='badge badge-info' style={{textTransform:'capitalize'}}>{opp.lifecycle_stage||'emerging'}</span>
-              <span className='badge badge-neutral'>{opp.entry_window||'TBD'}</span>
-            </div>
-            <h2 className='opp-title'>{opp.title}</h2>
-            <p className='opp-summary'>{opp.summary}</p>
-            {ai.go_no_go_reason&&<p className='opp-reason'>{ai.go_no_go_reason}</p>}
+      <div style={{ background:'var(--bg-card)',border:'1px solid var(--border-base)',borderRadius:14,padding:22,marginBottom:20 }}>
+        <div style={{ display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8,marginBottom:16 }}>
+          {MODES.map(m => (
+            <button key={m.id} onClick={()=>setMode(m.id)} style={{ padding:'10px 14px',borderRadius:10,border:`1px solid ${mode===m.id?'rgba(99,102,241,.5)':'var(--border-base)'}`,background:mode===m.id?'rgba(99,102,241,.1)':'var(--bg-base)',cursor:'pointer',textAlign:'left' as const }}>
+              <div style={{ fontSize:13,fontWeight:600,color:mode===m.id?'#a5b4fc':'var(--text-primary)',marginBottom:2 }}>{m.label}</div>
+              <div style={{ fontSize:11,color:'var(--text-muted)' }}>{m.sub}</div>
+            </button>
+          ))}
+        </div>
+
+        <textarea
+          value={input}
+          onChange={e=>setInput(e.target.value)}
+          placeholder="Enter a keyword, niche, or market to analyze..."
+          disabled={loading}
+          rows={3}
+          style={{ width:'100%',background:'var(--bg-base)',border:'1px solid var(--border-base)',borderRadius:8,padding:'10px 14px',color:'var(--text-primary)',fontSize:14,outline:'none',resize:'vertical',marginBottom:14,opacity:loading?0.6:1,boxSizing:'border-box' as const }}
+        />
+
+        {error && <div style={{ display:'flex',alignItems:'center',gap:8,padding:'10px 14px',background:'rgba(239,68,68,.08)',border:'1px solid rgba(239,68,68,.2)',borderRadius:8,marginBottom:14 }}><AlertCircle size={14} color="#ef4444"/><span style={{ fontSize:13,color:'#ef4444',flex:1 }}>{error}</span><button onClick={analyze} style={{ display:'flex',alignItems:'center',gap:4,background:'none',border:'none',color:'#ef4444',cursor:'pointer',fontSize:12 }}><RefreshCw size={11}/>Retry</button></div>}
+
+        <button onClick={analyze} disabled={loading||!input.trim()} style={{ width:'100%',display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:!loading&&input.trim()?'var(--brand-purple)':'var(--bg-hover)',color:!loading&&input.trim()?'#fff':'var(--text-muted)',border:'none',padding:'11px',borderRadius:8,fontSize:14,fontWeight:600,cursor:!loading&&input.trim()?'pointer':'not-allowed' }}>
+          <Zap size={15}/>{loading?`Running analysis${dots}`:'Run Analysis'}
+        </button>
+        {loading && <p style={{ fontSize:12,color:'var(--text-muted)',textAlign:'center' as const,margin:'8px 0 0' }}>AI analysis in progress · 20-45 seconds</p>}
+      </div>
+
+      {result && (
+        <div style={{ background:'var(--bg-card)',border:'1px solid var(--border-base)',borderRadius:14,padding:22 }}>
+          <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:14 }}>
+            {result.signal && <span style={{ fontSize:12,fontWeight:700,padding:'3px 10px',borderRadius:12,background:result.signal==='GO'?'rgba(16,185,129,.15)':'rgba(245,158,11,.15)',color:result.signal==='GO'?'#10b981':'#f59e0b' }}>{result.signal} {result.signal_reason||''}</span>}
+            {result.overall_score && <span style={{ fontSize:13,fontWeight:700,color:'var(--brand-purple)' }}>Score: {result.overall_score}/100</span>}
           </div>
-          <div className='score-ring-wrap'><ScoreRing score={sc}/><span className='score-ring-label'>score</span></div>
+          {result.title && <h2 style={{ fontSize:17,fontWeight:700,color:'var(--text-primary)',marginBottom:10 }}>{result.title}</h2>}
+          {result.summary && <p style={{ fontSize:14,color:'var(--text-secondary)',lineHeight:1.65,marginBottom:14 }}>{result.summary}</p>}
+          {result.key_insight && <div style={{ padding:'12px 16px',background:'rgba(99,102,241,.06)',border:'1px solid rgba(99,102,241,.2)',borderRadius:10,marginBottom:14 }}><p style={{ fontSize:13,color:'#a5b4fc',margin:0,fontStyle:'italic' }}>"{result.key_insight}"</p></div>}
+          {result.opportunities?.map((opp: any,i: number) => (
+            <div key={i} style={{ background:'var(--bg-base)',borderRadius:10,padding:14,marginBottom:10 }}>
+              <div style={{ fontSize:14,fontWeight:600,color:'var(--text-primary)',marginBottom:4 }}>{opp.title||opp.name}</div>
+              <p style={{ fontSize:13,color:'var(--text-secondary)',margin:0,lineHeight:1.6 }}>{opp.description||opp.summary}</p>
+            </div>
+          ))}
         </div>
-        <div className='scores-grid'>{metrics.map(([l,s,c])=>(<div key={l} style={{background:'var(--bg-overlay)',borderRadius:'var(--radius-md)',padding:'8px 10px'}}><Bar label={l} score={s} color={c}/></div>))}</div>
-        <div className='quick-stats'>
-          <div className='quick-stat'><div className='quick-stat-label'>Market</div><div className='quick-stat-value'>{opp.market_size||'Emerging'}</div></div>
-          <div className='quick-stat'><div className='quick-stat-label'>Category</div><div className='quick-stat-value' style={{textTransform:'capitalize'}}>{opp.category||'general'}</div></div>
-          <div className='quick-stat'><div className='quick-stat-label'>Peak Est</div><div className='quick-stat-value' style={{color:'var(--warning)'}}>{ai.peak_estimated||'Tracking'}</div></div>
-        </div>
-      </div>
-      <div style={{display:'flex',flexDirection:'column',gap:6}}>
-        {(opp.trend_signals||[]).length>0&&(<Coll title='Trend Signals' Icon={TrendingUp}>{opp.trend_signals.slice(0,5).map((s:any,i:number)=>(<div key={i} className='signal-row'><div className='signal-platform'><div className='signal-platform-name'>{s.platform}</div><div className='signal-strength-track'><div className='signal-strength-fill' style={{width:(s.strength||0)+'%'}}/></div></div><div className='signal-text'>{s.signal}{s.evidence&&<small>{s.evidence}</small>}</div><span className='signal-score'>{s.strength}</span></div>))}</Coll>)}
-        {(opp.pain_points||[]).length>0&&(<Coll title='Pain Points' Icon={AlertTriangle}>{opp.pain_points.slice(0,4).map((p:any,i:number)=>(<div key={i} className='pain-row'><span className={'pain-intensity pain-'+(p.intensity||'low')}>{(p.intensity||'low').toUpperCase()}</span><div><div className='pain-text'>{p.pain}</div>{p.evidence&&<div className='pain-evidence'>{p.evidence}</div>}</div></div>))}</Coll>)}
-        {(map.white_spaces||map.incumbents)&&(<Coll title='Competition X-Ray' Icon={Shield}>{(map.white_spaces||[]).length>0&&(<div className='whitespace-box'><div className='whitespace-title'>White Spaces</div>{map.white_spaces.map((w:string,i:number)=>(<div key={i} className='whitespace-item'><div className='whitespace-dot'/>{w}</div>))}</div>)}{(map.incumbents||[]).slice(0,3).map((c:any,i:number)=>(<div key={i} className='comp-item'><div style={{display:'flex',justifyContent:'space-between'}}><span className='comp-name'>{c.name}</span>{c.revenue&&<span style={{fontSize:10,color:'var(--text-disabled)'}}>{c.revenue}</span>}</div>{c.weakness&&<div className='comp-weak'>Weakness: {c.weakness}</div>}{c.your_angle&&<div className='comp-angle'>Your angle: {c.your_angle}</div>}</div>))}</Coll>)}
-        {mono.recommended_model&&(<Coll title='Monetization Intelligence' Icon={DollarSign}><div style={{background:'rgba(34,197,94,0.04)',border:'1px solid rgba(34,197,94,0.15)',borderRadius:'var(--radius-lg)',padding:'12px 14px',marginBottom:8}}><div style={{fontSize:9,fontWeight:700,color:'var(--success)',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4}}>Recommended</div><div style={{fontSize:13,fontWeight:700}}>{mono.recommended_model} <span style={{color:'var(--success)',fontWeight:400,fontSize:12}}>{mono.price_point}</span></div>{mono.pricing_psychology&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:6,lineHeight:1.5}}>{mono.pricing_psychology}</p>}</div>{(mono.paths||[]).length>0&&(<div className='grid-2'>{mono.paths.slice(0,4).map((p:any,i:number)=>(<div key={i} style={{background:'var(--bg-overlay)',borderRadius:'var(--radius-lg)',padding:'10px 12px'}}><div style={{fontSize:9,color:'var(--text-disabled)',marginBottom:3,textTransform:'uppercase'}}>{p.model}</div><div style={{fontSize:13,fontWeight:700,color:'var(--warning)'}}>{p.price}</div>{p.margin&&<div style={{fontSize:10,color:'var(--text-disabled)'}}>{p.margin}</div>}<div style={{fontSize:9,color:'var(--brand-purple)',marginTop:3}}>{p.timeline}</div></div>))}</div>)}{mono.ltv_estimate&&(<div className='grid-2'><div style={{background:'var(--bg-overlay)',borderRadius:'var(--radius-lg)',padding:'10px 12px'}}><div style={{fontSize:9,color:'var(--text-disabled)',marginBottom:3}}>LTV</div><div style={{fontSize:13,fontWeight:700,color:'var(--success)'}}>{mono.ltv_estimate}</div></div><div style={{background:'var(--bg-overlay)',borderRadius:'var(--radius-lg)',padding:'10px 12px'}}><div style={{fontSize:9,color:'var(--text-disabled)',marginBottom:3}}>CAC</div><div style={{fontSize:13,fontWeight:700,color:'var(--warning)'}}>{mono.cac_estimate||'TBD'}</div></div></div>)}</Coll>)}
-        {exec.mvp_definition&&(<Coll title='Execution Pipeline' Icon={Rocket}><div style={{background:'rgba(99,102,241,0.04)',border:'1px solid rgba(99,102,241,0.15)',borderRadius:'var(--radius-lg)',padding:'12px 14px',marginBottom:8}}><div style={{fontSize:9,fontWeight:700,color:'var(--brand-purple)',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4}}>MVP</div><p style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.5}}>{exec.mvp_definition}</p></div>{exec.first_dollar&&(<div className='revenue-box' style={{marginBottom:8}}><div style={{fontSize:9,fontWeight:700,color:'var(--success)',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4}}>First Revenue</div><p style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.5}}>{exec.first_dollar}</p></div>)}<div>{phases.map(([k,label],idx)=>{const step=exec[k];if(!step)return null;return(<div key={k} className='pipeline-step'><div className='step-line-wrap'><div className='step-dot'><div className='step-dot-inner'/></div>{idx<phases.length-1&&<div className='step-connector'/>}</div><div className='step-content'><div className='step-phase'>{label}{step.cost&&<span className='step-cost'> - {step.cost}</span>}</div><div className='step-action'>{step.action}</div>{step.outcome&&<div className='step-outcome'>{step.outcome}</div>}</div></div>)})}</div></Coll>)}
-        {ai.unique_insight&&(<div className='insight-box'><div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}><Sparkles size={12} style={{color:'var(--brand-purple)'}}/><span style={{fontSize:9,fontWeight:700,color:'var(--brand-purple)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Key Insight</span></div><p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.65}}>{ai.unique_insight}</p></div>)}
-        <button onClick={()=>{onSave(opp.id);setSaved(true)}} disabled={saved} className='btn btn-ghost' style={{width:'100%',justifyContent:'center'}}><BookmarkPlus size={13}/>{saved?'Saved':'Save Opportunity'}</button>
-      </div>
+      )}
     </div>
-  )
+  );
 }
 
-export default function GeneratorPage(){
-  const params=useSearchParams()
-  const[session,setSession]=useState<any>(null)
-  const[profile,setProfile]=useState<any>(null)
-  const[mode,setMode]=useState('analyze')
-  const[input,setInput]=useState('')
-  const[radarId,setRadarId]=useState<string|null>(null)
-  const[loading,setLoading]=useState(false)
-  const[results,setResults]=useState<any[]>([])
-  const[error,setError]=useState('')
-
-  useEffect(()=>{
-    const m=params?.get('market');const r=params?.get('radar_id')
-    if(m)setInput(m);if(r)setRadarId(r)
-    supabase.auth.getSession().then(async({data:{session:s}})=>{
-      if(!s)return
-      setSession(s)
-      const{data}=await supabase.from('profiles').select('*').eq('id',s.user.id).single()
-      setProfile(data)
-    })
-  },[])
-
-  async function run(e:React.FormEvent){
-    e.preventDefault()
-    if(!input.trim()||!session)return
-    setLoading(true);setError('');setResults([])
-    try{
-      const res=await fetch(SUPA_FN,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({niche:input,mode,radar_id:radarId||undefined})})
-      const data=await res.json()
-      if(!res.ok)throw new Error(data.error||'Analysis failed')
-      setResults(data.opportunities||[])
-      setProfile((p:any)=>p?{...p,generations_used:(p.generations_used||0)+1}:p)
-    }catch(err:any){setError(err.message||'Failed.')}
-    finally{setLoading(false)}
-  }
-
-  async function save(id:string){
-    if(!session)return
-    await supabase.from('saved_opportunities').upsert({user_id:session.user.id,opportunity_id:id})
-  }
-
-  const used=profile?.generations_used||0,limit=profile?.generations_limit||7,pct=Math.min((used/limit)*100,100)
-
-  return(
-    <div style={{maxWidth:680,margin:'0 auto'}}>
-      <div className='page-header' style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-        <div><h1>Intelligence Engine</h1><p>Analyze any market — results linked to your Radar</p></div>
-        <div style={{textAlign:'right'}}><div style={{fontSize:10,color:'var(--text-disabled)',fontFamily:'monospace',marginBottom:4}}>{used}/{limit} CREDITS</div><div style={{width:80,height:3,background:'var(--bg-subtle)',borderRadius:99,overflow:'hidden'}}><div style={{height:'100%',background:'linear-gradient(90deg,var(--brand-purple),var(--brand-pink))',borderRadius:99,width:pct+'%',transition:'width 0.5s'}}/></div></div>
-      </div>
-      {radarId&&<div style={{marginBottom:12,padding:'8px 12px',background:'rgba(99,102,241,0.06)',border:'1px solid rgba(99,102,241,0.2)',borderRadius:'var(--radius-md)',fontSize:11,color:'var(--brand-purple)'}}>This analysis will update your Radar entry</div>}
-      <div className='mode-grid'>{MODES.map(m=>(<button key={m.id} onClick={()=>setMode(m.id)} className={'mode-tab'+(mode===m.id?' active':'')}><div className='mode-tab-label'>{m.label}</div><div className='mode-tab-desc'>{m.desc}</div></button>))}</div>
-      <div className='card' style={{padding:18,marginBottom:20}}>
-        <form onSubmit={run}>
-          <textarea value={input} onChange={e=>setInput(e.target.value)} placeholder={PH[mode]||PH.analyze} rows={3} className='textarea' style={{marginBottom:12}}/>
-          {error&&(<div className='alert alert-error' style={{marginBottom:12}}><AlertTriangle size={13} style={{flexShrink:0}}/><span>{error}</span></div>)}
-          <button type='submit' disabled={loading||!input.trim()||used>=limit} className='btn btn-grad btn-xl' style={{width:'100%'}}>
-            {loading?<><div className='spinner' style={{width:16,height:16,border:'2px solid rgba(255,255,255,0.3)',borderTopColor:'white'}}/>Analyzing...</>:<><Zap size={15}/>Run Analysis</>}
-          </button>
-          {used>=limit&&<p style={{fontSize:10,textAlign:'center',color:'var(--text-disabled)',marginTop:8}}>Credits exhausted. <a href='/settings/billing' style={{color:'var(--brand-purple)'}}>Upgrade</a></p>}
-        </form>
-      </div>
-      {results.map((opp:any)=>(<OppCard key={opp.id} opp={opp} onSave={save}/>))}
-    </div>
-  )
+export default function GeneratorPage() {
+  return <Suspense fallback={<div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'60vh' }}><div style={{ width:28,height:28,border:'2px solid var(--border-base)',borderTopColor:'var(--brand-purple)',borderRadius:'50%',animation:'spin 0.8s linear infinite' }}/></div>}><GeneratorContent/></Suspense>;
 }
