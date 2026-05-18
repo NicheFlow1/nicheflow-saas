@@ -16,6 +16,8 @@
   --text-disabled: #3d4160;
   --brand-purple: #7c3aed;
   --brand-indigo: #6366f1;
+  --scrollbar-thumb: #2a2d3e;
+  --scrollbar-track: transparent;
 }
 
 [data-theme="light"] {
@@ -28,6 +30,8 @@
   --text-secondary: #3d4160;
   --text-muted: #6b7194;
   --text-disabled: #b0b4c8;
+  --scrollbar-thumb: #c8cad6;
+  --scrollbar-track: transparent;
 }
 
 [data-theme="midnight"] {
@@ -39,6 +43,8 @@
   --text-primary: #ffffff;
   --text-secondary: #d0d0d0;
   --text-muted: #666666;
+  --scrollbar-thumb: #222222;
+  --scrollbar-track: transparent;
 }
 
 [data-theme="purple"] {
@@ -50,6 +56,8 @@
   --text-primary: #f0eeff;
   --text-secondary: #c8bfee;
   --text-muted: #7b6faa;
+  --scrollbar-thumb: #3a2f6a;
+  --scrollbar-track: transparent;
 }
 
 html, body {
@@ -64,6 +72,26 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
+}
+
+/* Custom scrollbar — replaces the ugly default */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-purple);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .app-shell {
@@ -111,4 +139,9 @@ input::placeholder, textarea::placeholder {
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
