@@ -1,127 +1,134 @@
-'use client';
-import React, { useState, useEffect, useRef } from 'react';
-import { getSupabaseClient } from '@/lib/supabase/client-singleton';
-import { TrendingUp, Zap, RefreshCw, ExternalLink, Flame, ArrowUp } from 'lucide-react';
 
-const FN = 'https://aincmpxokmsygyghvtnm.supabase.co/functions/v1/autopilot';
+"use client";
+import { useRef, useState } from "react";
+import { getSupabaseClient } from "@/lib/supabase/client-singleton";
 
-const CATEGORIES = ['All','AI & Tech','Health & Wellness','Finance','Creator Economy','SaaS','E-commerce','Education','Climate & Green'];
+const CATEGORIES = [
+  { id: "all", label: "All" },
+  { id: "ai-tech", label: "AI & Tech" },
+  { id: "health-wellness", label: "Health & Wellness" },
+  { id: "finance", label: "Finance" },
+  { id: "creator-economy", label: "Creator Economy" },
+  { id: "saas", label: "SaaS" },
+  { id: "ecommerce", label: "E-commerce" },
+  { id: "education", label: "Education" },
+  { id: "climate-green", label: "Climate & Green" },
+];
+
+const signalColors: Record<string, string> = {
+  GO: "#10b981", WATCH: "#f59e0b", WAIT: "#6b7280",
+};
+const momentumColors: Record<string, string> = {
+  Rising: "#10b981", Stable: "#6366f1", Declining: "#ef4444",
+};
+const difficultyColors: Record<string, string> = {
+  Easy: "#10b981", Medium: "#f59e0b", Hard: "#ef4444",
+};
+
+interface TrendTopic {
+  topic: string; category: string; score: number;
+  signal: string; momentum: string; why_trending: string;
+  opportunity: string; time_window: string; difficulty: string;
+}
 
 export default function TrendingPage() {
-  const [session, setSession] = useState<any>(null);
-  const [ready, setReady] = useState(false);
-  const [category, setCategory] = useState('All');
-  const [trends, setTrends] = useState<any[]>([]);
+  const supabase = useRef(getSupabaseClient()).current;
+  const [category, setCategory] = useState("all");
   const [loading, setLoading] = useState(false);
-  const [dots, setDots] = useState('');
-  const [error, setError] = useState('');
-  const sbRef = useRef(getSupabaseClient());
+  const [topics, setTopics] = useState<TrendTopic[]>([]);
+  const [error, setError] = useState("");
+  const [lastScanned, setLastScanned] = useState<string | null>(null);
 
-  useEffect(() => {
-    const sb = sbRef.current;
-    sb.auth.getSession().then(({ data }: any) => { setSession(data.session); setReady(true); });
-    const { data: { subscription } } = sb.auth.onAuthStateChange((_e: any, s: any) => { setSession(s); setReady(true); });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!loading) { setDots(''); return; }
-    const iv = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
-    return () => clearInterval(iv);
-  }, [loading]);
-
-  async function discover() {
-    if (!session) return;
-    setLoading(true); setError(''); setTrends([]);
+  async function scan() {
+    setLoading(true);
+    setError("");
     try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 90000);
-      const r = await fetch(FN, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ action: 'discover_trending', category: category === 'All' ? null : category }),
-        signal: ctrl.signal
-      });
-      clearTimeout(timer);
-      if (!r.ok) throw new Error((await r.json().catch(()=>({}))).error || 'Failed');
-      const data = await r.json();
-      setTrends(data.trends || []);
-    } catch (e: any) {
-      if (e.name === 'AbortError') setError('Timed out. Please try again.');
-      else setError(e.message || 'Failed to load trends');
-    } finally { setLoading(false); }
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/autopilot`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+          body: JSON.stringify({ action: "trending", category }),
+        }
+      );
+      const data = await res.json();
+      if (data.topics) {
+        setTopics(data.topics);
+        setLastScanned(new Date().toLocaleTimeString());
+      } else {
+        setError(data.error || "Failed to load trending topics");
+      }
+    } catch (e) { setError(String(e)); }
+    setLoading(false);
   }
 
-  if (!ready) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'60vh' }}><div style={{ width:28,height:28,border:'2px solid var(--border-base)',borderTopColor:'var(--brand-purple)',borderRadius:'50%',animation:'spin 0.8s linear infinite' }}/></div>;
-  if (!session) { if (typeof window !== 'undefined') window.location.href='/auth/login'; return null; }
-
   return (
-    <div style={{ maxWidth:900,margin:'0 auto',padding:'32px 24px' }}>
-      <div style={{ marginBottom:24 }}>
-        <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:6 }}>
-          <Flame size={20} color="#f59e0b"/>
-          <h1 style={{ fontSize:20,fontWeight:700,color:'var(--text-primary)',margin:0 }}>Trending Now</h1>
-          <span style={{ fontSize:10,fontWeight:700,background:'rgba(245,158,11,.15)',color:'#f59e0b',padding:'2px 8px',borderRadius:20,border:'1px solid rgba(245,158,11,.3)' }}>LIVE</span>
+    <div style={{ padding: "2rem", maxWidth: 1000, margin: "0 auto" }}>
+      <div style={{ marginBottom: "2rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
+          <span style={{ fontSize: "1.5rem" }}>🔥</span>
+          <h1 style={{ fontSize: "1.8rem", fontWeight: 700, color: "var(--text-primary)" }}>Trending Now</h1>
+          <span style={{ background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444", borderRadius: 999, padding: "0.15rem 0.6rem", fontSize: "0.7rem", fontWeight: 700 }}>LIVE</span>
         </div>
-        <p style={{ fontSize:14,color:'var(--text-muted)',margin:0 }}>Discover what is trending RIGHT NOW — before it goes mainstream. Powered by real data signals.</p>
+        <p style={{ color: "var(--text-muted)" }}>Discover what is trending RIGHT NOW — before it goes mainstream. Powered by real data signals.</p>
       </div>
 
-      <div style={{ display:'flex',gap:8,marginBottom:20,flexWrap:'wrap' as const }}>
-        {CATEGORIES.map(c => (
-          <button key={c} onClick={()=>setCategory(c)} style={{ padding:'6px 14px',borderRadius:20,fontSize:12,fontWeight:600,cursor:'pointer',border:category===c?'none':'1px solid var(--border-base)',background:category===c?'var(--brand-purple)':'transparent',color:category===c?'#fff':'var(--text-muted)' }}>{c}</button>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1.5rem" }}>
+        {CATEGORIES.map(cat => (
+          <button key={cat.id} onClick={() => setCategory(cat.id)} style={{ background: category === cat.id ? "var(--accent)" : "var(--bg-card)", color: category === cat.id ? "white" : "var(--text-secondary)", border: `1px solid ${category === cat.id ? "var(--accent)" : "var(--border)"}`, borderRadius: 999, padding: "0.35rem 0.9rem", fontWeight: category === cat.id ? 700 : 500, fontSize: "0.85rem", cursor: "pointer", transition: "all 0.15s" }}>
+            {cat.label}
+          </button>
         ))}
       </div>
 
-      <button onClick={discover} disabled={loading} style={{ display:'flex',alignItems:'center',gap:8,background:'var(--brand-purple)',color:'#fff',border:'none',padding:'11px 24px',borderRadius:9,fontSize:14,fontWeight:600,cursor:loading?'not-allowed':'pointer',marginBottom:24,opacity:loading?0.8:1 }}>
-        <RefreshCw size={14} style={{ animation:loading?'spin 0.8s linear infinite':undefined }}/>{loading?`Scanning${dots}`:'Scan Trending Topics'}
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "2rem" }}>
+        <button onClick={scan} disabled={loading} style={{ background: loading ? "var(--bg-elevated)" : "var(--accent)", color: loading ? "var(--text-muted)" : "white", border: "none", borderRadius: "var(--radius)", padding: "0.75rem 1.75rem", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: loading ? "none" : "0 4px 15px var(--accent-glow)", transition: "all 0.2s" }}>
+          {loading ? (<><div style={{ width: 16, height: 16, border: "2px solid var(--text-muted)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin 1s linear infinite" }} />Scanning markets...</>) : (<>🔄 Scan Trending Topics</>)}
+        </button>
+        {lastScanned && <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>Last scanned: {lastScanned}</span>}
+      </div>
 
-      {error && <div style={{ padding:'12px 16px',background:'rgba(239,68,68,.08)',border:'1px solid rgba(239,68,68,.2)',borderRadius:10,marginBottom:20,fontSize:13,color:'#ef4444' }}>{error}</div>}
+      {error && <div style={{ background: "#7f1d1d22", border: "1px solid #ef444444", borderRadius: "var(--radius-sm)", padding: "1rem", color: "var(--danger)", marginBottom: "1.5rem" }}>{error}</div>}
 
-      {trends.length === 0 && !loading && (
-        <div style={{ textAlign:'center',padding:'48px 24px',border:'1px dashed var(--border-base)',borderRadius:14 }}>
-          <Flame size={36} color="var(--text-disabled)" style={{ marginBottom:12 }}/>
-          <p style={{ fontSize:14,color:'var(--text-muted)',marginBottom:6 }}>No trends loaded yet.</p>
-          <p style={{ fontSize:13,color:'var(--text-disabled)' }}>Click "Scan Trending Topics" to discover what is blowing up right now.</p>
+      {topics.length === 0 && !loading && !error && (
+        <div style={{ textAlign: "center", padding: "4rem 2rem", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
+          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔥</div>
+          <p style={{ color: "var(--text-muted)", marginBottom: "0.5rem", fontWeight: 500 }}>No trends loaded yet.</p>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>Click &quot;Scan Trending Topics&quot; to discover what is blowing up right now.</p>
         </div>
       )}
 
-      <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:14 }}>
-        {trends.map((t: any, i: number) => (
-          <div key={i} style={{ background:'var(--bg-card)',border:`1px solid ${t.signal==='GO'?'rgba(16,185,129,.2)':'var(--border-base)'}`,borderRadius:13,padding:18,display:'flex',flexDirection:'column',gap:10 }}>
-            <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start' }}>
-              <div style={{ flex:1 }}>
-                <div style={{ display:'flex',alignItems:'center',gap:7,marginBottom:5 }}>
-                  {t.signal === 'GO' && <span style={{ fontSize:10,fontWeight:700,background:'rgba(16,185,129,.15)',color:'#10b981',padding:'2px 7px',borderRadius:10 }}>GO</span>}
-                  {t.category && <span style={{ fontSize:10,color:'var(--text-muted)',background:'var(--bg-hover)',padding:'2px 7px',borderRadius:8 }}>{t.category}</span>}
+      {topics.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(440px, 1fr))", gap: "1rem" }}>
+          {topics.map((t, i) => (
+            <div key={i} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "1.25rem", animation: "fadeIn 0.3s ease" }} onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--border-accent)")} onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border)")}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
+                <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)", flex: 1, marginRight: "0.5rem" }}>{t.topic}</h3>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.3rem" }}>
+                  <span style={{ background: (signalColors[t.signal] || "#6b7280") + "22", color: signalColors[t.signal] || "#6b7280", border: `1px solid ${signalColors[t.signal] || "#6b7280"}44`, borderRadius: 999, padding: "0.15rem 0.6rem", fontSize: "0.72rem", fontWeight: 700 }}>{t.signal}</span>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--accent-light)" }}>{t.score}/100</span>
                 </div>
-                <h3 style={{ fontSize:14,fontWeight:700,color:'var(--text-primary)',margin:'0 0 4px',lineHeight:1.3 }}>{t.name}</h3>
-                <p style={{ fontSize:12,color:'var(--text-muted)',margin:0,lineHeight:1.5 }}>{t.why_trending}</p>
               </div>
-              <div style={{ textAlign:'center' as const,marginLeft:12,flexShrink:0 }}>
-                <div style={{ fontSize:22,fontWeight:800,color:t.score>=70?'#10b981':t.score>=50?'#f59e0b':'var(--text-muted)' }}>{t.score}</div>
-                <div style={{ fontSize:9,color:'var(--text-muted)',textTransform:'uppercase' as const }}>score</div>
+              <div style={{ height: 4, background: "var(--bg-elevated)", borderRadius: 999, overflow: "hidden", marginBottom: "0.75rem" }}>
+                <div style={{ height: "100%", width: `${t.score}%`, background: `linear-gradient(90deg, ${signalColors[t.signal] || "var(--accent)"}, var(--accent-light))`, borderRadius: 999 }} />
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.75rem" }}>
+                <span style={{ background: "var(--bg-elevated)", color: "var(--text-muted)", borderRadius: 999, padding: "0.15rem 0.55rem", fontSize: "0.7rem", border: "1px solid var(--border)" }}>{t.category}</span>
+                <span style={{ background: (momentumColors[t.momentum] || "#6366f1") + "22", color: momentumColors[t.momentum] || "#6366f1", border: `1px solid ${momentumColors[t.momentum] || "#6366f1"}44`, borderRadius: 999, padding: "0.15rem 0.55rem", fontSize: "0.7rem", fontWeight: 600 }}>{t.momentum === "Rising" ? "📈" : t.momentum === "Declining" ? "📉" : "➡️"} {t.momentum}</span>
+                <span style={{ background: (difficultyColors[t.difficulty] || "#6b7280") + "22", color: difficultyColors[t.difficulty] || "#6b7280", border: `1px solid ${difficultyColors[t.difficulty] || "#6b7280"}44`, borderRadius: 999, padding: "0.15rem 0.55rem", fontSize: "0.7rem", fontWeight: 600 }}>{t.difficulty}</span>
+                <span style={{ background: "var(--bg-elevated)", color: "var(--info)", borderRadius: 999, padding: "0.15rem 0.55rem", fontSize: "0.7rem", border: "1px solid var(--border)" }}>⏱ {t.time_window}</span>
+              </div>
+              <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginBottom: "0.5rem", lineHeight: 1.5 }}><strong style={{ color: "var(--text-muted)", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>Why trending: </strong>{t.why_trending}</p>
+              <p style={{ fontSize: "0.82rem", color: "var(--success)", lineHeight: 1.5, marginBottom: "0.75rem" }}><strong style={{ color: "var(--text-muted)", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>Opportunity: </strong>{t.opportunity}</p>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button onClick={() => window.location.href = `/dashboard/starter?keyword=${encodeURIComponent(t.topic)}`} style={{ flex: 1, background: "var(--accent)", color: "white", border: "none", borderRadius: "var(--radius-sm)", padding: "0.5rem", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}>🚀 Build Kit</button>
+                <button onClick={() => window.location.href = `/dashboard/validate?q=${encodeURIComponent(t.topic)}`} style={{ flex: 1, background: "var(--bg-elevated)", color: "var(--text-secondary)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "0.5rem", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}>✅ Validate</button>
               </div>
             </div>
-            {t.growth && (
-              <div style={{ display:'flex',alignItems:'center',gap:5,fontSize:12 }}>
-                <ArrowUp size={11} color="#10b981"/>
-                <span style={{ color:'#10b981',fontWeight:600 }}>{t.growth}</span>
-                <span style={{ color:'var(--text-muted)' }}>growth · {t.stage || 'emerging'}</span>
-              </div>
-            )}
-            {t.opportunity && <p style={{ fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,margin:0,padding:'8px 10px',background:'rgba(99,102,241,.05)',border:'1px solid rgba(99,102,241,.12)',borderRadius:8 }}>💡 {t.opportunity}</p>}
-            <div style={{ display:'flex',gap:7,marginTop:2 }}>
-              <a href={`/generator?keyword=${encodeURIComponent(t.name)}`} style={{ flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:5,background:'rgba(99,102,241,.1)',border:'1px solid rgba(99,102,241,.2)',color:'#a5b4fc',padding:'7px',borderRadius:8,fontSize:12,fontWeight:600,textDecoration:'none' }}>
-                <Zap size={11}/>Analyze
-              </a>
-              <a href={`/autopilot/starter?keyword=${encodeURIComponent(t.name)}`} style={{ flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:5,background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.2)',color:'#10b981',padding:'7px',borderRadius:8,fontSize:12,fontWeight:600,textDecoration:'none' }}>
-                <TrendingUp size={11}/>Build Kit
-              </a>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
