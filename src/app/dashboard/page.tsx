@@ -1,104 +1,81 @@
+'use client';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
-"use client";
-import { useEffect, useRef, useState } from "react";
-import { getSupabaseClient } from "@/lib/supabase/client-singleton";
+const QUICK_ACCESS = [
+  { href: '/dashboard/autopilot', label: 'Autopilot', desc: 'AI-powered daily market briefing', iconPath: 'M13 10V3L4 14h7v7l9-11h-7z', color: '#7c3aed' },
+  { href: '/dashboard/trending', label: 'Trending Now', desc: 'What is blowing up right now', iconPath: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', color: '#ef4444' },
+  { href: '/dashboard/validate', label: 'Validate Trend', desc: 'Score any niche in seconds', iconPath: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: '#22c55e' },
+  { href: '/dashboard/radar', label: 'Market Radar', desc: 'Track and signal your markets', iconPath: 'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7', color: '#3b82f6' },
+  { href: '/dashboard/keywords', label: 'Keyword Clusters', desc: 'SEO clusters with intent data', iconPath: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z', color: '#f59e0b' },
+  { href: '/dashboard/generator', label: 'Intelligence Engine', desc: 'Deep market analysis', iconPath: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z', color: '#6366f1' },
+];
 
 export default function DashboardPage() {
-  const supabase = useRef(getSupabaseClient()).current;
-  const [profile, setProfile] = useState<any>(null);
-  const [stats, setStats] = useState({ generations: 0, reports: 0, kits: 0, plan: "free" });
+  const [stats, setStats] = useState({ generations: 0, limit: 10, reports: 0, kits: 0, plan: 'FREE' });
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) return;
-      const uid = session.user.id;
-      const [{ data: prof }, { count: rCount }, { count: kCount }] = await Promise.all([
-        supabase.from("profiles").select("display_name,credits,plan").eq("id", uid).single(),
-        supabase.from("market_reports").select("*", { count: "exact", head: true }).eq("user_id", uid),
-        supabase.from("starter_kits").select("*", { count: "exact", head: true }).eq("user_id", uid),
-      ]);
-      if (prof) {
-        setProfile(prof);
-        setStats({ generations: prof.credits ?? 0, reports: rCount ?? 0, kits: kCount ?? 0, plan: prof.plan ?? "free" });
-      }
-    });
+    fetch('/api/autopilot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'get_stats' }) })
+      .then(r => r.json()).then(d => { if (d.stats) setStats(d.stats); }).catch(() => {});
   }, []);
 
-  const name = profile?.display_name || "there";
-  const maxCredits = stats.plan === "pro" ? 200 : stats.plan === "agency" ? 1000 : 10;
-
-  const STAT_CARDS = [
-    { icon: "⚡", label: "Generations", value: `${stats.generations}/${maxCredits}`, color: "#7c3aed" },
-    { icon: "📈", label: "Reports", value: stats.reports, color: "#10b981" },
-    { icon: "📦", label: "Starter Kits", value: stats.kits, color: "#f59e0b" },
-    { icon: "⚡", label: "Plan", value: stats.plan.toUpperCase(), color: "#6366f1" },
-  ];
-
-  const QUICK_LINKS = [
-    { href: "/dashboard/autopilot",    icon: "🤖", label: "Autopilot",          desc: "AI-powered daily market briefing" },
-    { href: "/trending",               icon: "🔥", label: "Trending Now",        desc: "What is blowing up right now" },
-    { href: "/dashboard/validate",     icon: "✅", label: "Validate Trend",      desc: "Score any niche in seconds" },
-    { href: "/dashboard/radar",        icon: "📡", label: "Market Radar",        desc: "Track and signal your markets" },
-    { href: "/dashboard/keywords",     icon: "🔑", label: "Keyword Clusters",    desc: "SEO clusters with intent data" },
-    { href: "/dashboard/intelligence", icon: "🧠", label: "Intelligence Engine", desc: "Deep market analysis" },
-    { href: "/dashboard/starter",      icon: "🚀", label: "Starter Kit Builder", desc: "Full business kit in minutes" },
-    { href: "/dashboard/content",      icon: "✍️", label: "Content Studio",      desc: "Viral content for any platform" },
-    { href: "/dashboard/chat",         icon: "💬", label: "AI Assistant",        desc: "Chat with ARIA, your AI scout" },
-  ];
-
   return (
-    <div style={{ padding: "2rem 2.5rem", maxWidth: 1100, margin: "0 auto" }}>
-      {/* Header */}
-      <div style={{ marginBottom: "2.5rem" }}>
-        <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.3rem" }}>
-          Dashboard
-        </h1>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>
-          Welcome back, <strong style={{ color: "var(--accent-light)" }}>{name}</strong>. Here is your market intelligence overview.
-        </p>
+    <div style={{ padding: '32px', maxWidth: '1100px' }}>
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{ fontSize: '30px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>Dashboard</h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '15px', margin: 0 }}>Welcome back. Here is your market intelligence overview.</p>
       </div>
 
-      {/* Stat cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginBottom: "2.5rem" }}>
-        {STAT_CARDS.map((s, i) => (
-          <div key={i} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "1.25rem", position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${s.color}, ${s.color}88)` }} />
-            <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.5rem" }}>{s.label}</p>
-            <p style={{ fontSize: "1.6rem", fontWeight: 800, color: "var(--text-primary)" }}>{s.value}</p>
+      {/* Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '36px' }}>
+        {[
+          { label: 'GENERATIONS', value: stats.generations + '/' + stats.limit, accent: '#7c3aed' },
+          { label: 'REPORTS', value: String(stats.reports), accent: '#22c55e' },
+          { label: 'STARTER KITS', value: String(stats.kits), accent: '#f59e0b' },
+          { label: 'PLAN', value: stats.plan, accent: '#3b82f6' },
+        ].map(s => (
+          <div key={s.label} style={{ background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px', borderTop: '3px solid ' + s.accent }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '10px' }}>{s.label}</div>
+            <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)' }}>{s.value}</div>
           </div>
         ))}
       </div>
 
-      {/* Quick access */}
-      <div style={{ marginBottom: "1rem" }}>
-        <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "1rem" }}>Quick Access</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem" }}>
-          {QUICK_LINKS.map((link, i) => (
-            <a key={i} href={link.href} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "1rem 1.1rem", textDecoration: "none", display: "flex", alignItems: "flex-start", gap: "0.75rem", transition: "all 0.15s", cursor: "pointer" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.background = "var(--bg-elevated)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg-card)"; }}>
-              <span style={{ fontSize: "1.25rem", flexShrink: 0, marginTop: "0.1rem" }}>{link.icon}</span>
-              <div>
-                <p style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: "0.875rem", marginBottom: "0.2rem" }}>{link.label}</p>
-                <p style={{ fontSize: "0.775rem", color: "var(--text-muted)", lineHeight: 1.4 }}>{link.desc}</p>
-              </div>
-            </a>
-          ))}
-        </div>
+      {/* Quick Access */}
+      <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Quick Access</h2>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '36px' }}>
+        {QUICK_ACCESS.map(({ href, label, desc, iconPath, color }) => (
+          <Link key={href} href={href} style={{ background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border)', padding: '18px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '14px', transition: 'border-color 0.2s, transform 0.15s' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={iconPath} /></svg>
+            </div>
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>{label}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{desc}</div>
+            </div>
+          </Link>
+        ))}
       </div>
 
-      {/* Upgrade banner (free only) */}
-      {stats.plan === "free" && (
-        <div style={{ marginTop: "2rem", background: "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(167,139,250,0.08))", border: "1px solid var(--border-accent)", borderRadius: "var(--radius-lg)", padding: "1.5rem 2rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
-          <div>
-            <h3 style={{ fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.3rem" }}>Unlock the full platform</h3>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>Upgrade to Pro for 200 credits/mo, deeper analysis, and priority processing.</p>
+      {/* Today actions */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <Link href="/dashboard/daily-picks" style={{ background: 'linear-gradient(135deg, #7c3aed22, #4f46e522)', borderRadius: '14px', border: '1px solid #7c3aed44', padding: '24px', textDecoration: 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+            <span style={{ fontSize: '16px', fontWeight: 600, color: '#7c3aed' }}>Today&apos;s Daily Picks</span>
           </div>
-          <a href="/dashboard/billing" style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-light))", color: "white", borderRadius: "var(--radius-sm)", padding: "0.65rem 1.5rem", fontWeight: 700, fontSize: "0.9rem", textDecoration: "none", whiteSpace: "nowrap", boxShadow: "0 4px 12px var(--accent-glow)", flexShrink: 0 }}>
-            Upgrade to Pro →
-          </a>
-        </div>
-      )}
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0 }}>5 AI-curated niche opportunities waiting for you today.</p>
+        </Link>
+        <Link href="/dashboard/watchlist" style={{ background: 'linear-gradient(135deg, #3b82f622, #06b6d422)', borderRadius: '14px', border: '1px solid #3b82f644', padding: '24px', textDecoration: 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
+            <span style={{ fontSize: '16px', fontWeight: 600, color: '#3b82f6' }}>My Watchlist</span>
+          </div>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0 }}>Track and re-analyze your saved niches.</p>
+        </Link>
+      </div>
     </div>
   );
 }
