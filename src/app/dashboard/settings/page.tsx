@@ -1,153 +1,125 @@
-
-"use client";
-import { useEffect, useRef, useState } from "react";
-import { getSupabaseClient } from "@/lib/supabase/client-singleton";
-
-const THEMES = [
-  { id: "dark",     label: "Dark",     colors: ["#0f0f13", "#7c3aed"] },
-  { id: "midnight", label: "Midnight", colors: ["#070714", "#6d28d9"] },
-  { id: "light",    label: "Light",    colors: ["#f8f8ff", "#7c3aed"] },
-  { id: "purple",   label: "Purple",   colors: ["#120a2e", "#a855f7"] },
-];
+'use client';
+import { useState } from 'react';
 
 export default function SettingsPage() {
-  const supabase = useRef(getSupabaseClient()).current;
-  const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState("");
-  const [theme, setTheme] = useState("dark");
-  const [credits, setCredits] = useState(0);
-  const [plan, setPlan] = useState("free");
-  const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState<'profile'|'billing'|'notifications'|'api'>('profile');
   const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    // Load current theme from localStorage
-    const saved = localStorage.getItem("nicheflow-theme") || "dark";
-    setTheme(saved);
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      setEmail(session.user.email || "");
-      supabase.from("profiles").select("display_name,credits,plan").eq("id", session.user.id).single().then(({ data }) => {
-        if (data) {
-          setDisplayName(data.display_name || "");
-          setCredits(data.credits ?? 0);
-          setPlan(data.plan ?? "free");
-        }
-      });
-    });
-  }, []);
-
-  function applyTheme(t: string) {
-    setTheme(t);
-    localStorage.setItem("nicheflow-theme", t);
-    document.documentElement.setAttribute("data-theme", t);
-  }
+  const [form, setForm] = useState({ name: '', email: '', company: '' });
 
   async function saveProfile() {
-    setSaving(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      await supabase.from("profiles").update({ display_name: displayName }).eq("id", session.user.id);
-    }
-    setSaving(false);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setTimeout(() => setSaved(false), 2000);
   }
 
-  const maxCredits = plan === "pro" ? 200 : plan === "agency" ? 1000 : 10;
+  const tabs = [
+    { id: 'profile', label: 'Profile' },
+    { id: 'billing', label: 'Billing & Plan' },
+    { id: 'notifications', label: 'Notifications' },
+    { id: 'api', label: 'API Keys' },
+  ];
+
+  const plans = [
+    { name: 'Free', price: '$0', period: '/mo', features: ['10 AI generations/mo', '3 market radars', '1 starter kit', 'Community support'], color: '#6b7280', current: true },
+    { name: 'Pro', price: '$29', period: '/mo', features: ['Unlimited AI generations', 'Real-time trend alerts', 'Full audience intel', 'Priority support', 'Export to PDF/CSV'], color: '#7c3aed', current: false },
+    { name: 'Agency', price: '$79', period: '/mo', features: ['Everything in Pro', 'Up to 10 team members', 'White-label reports', 'API access', 'Dedicated support'], color: '#f59e0b', current: false },
+  ];
 
   return (
-    <div style={{ padding: "2rem", maxWidth: 700, margin: "0 auto" }}>
-      <h1 style={{ fontSize: "1.6rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "2rem" }}>Settings</h1>
-
-      {/* Profile */}
-      <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "1.5rem", marginBottom: "1.5rem" }}>
-        <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <span>👤</span> Profile
-        </h2>
-        <div style={{ marginBottom: "1rem" }}>
-          <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: "0.4rem" }}>Display Name</label>
-          <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Your name" style={{ width: "100%" }} />
-        </div>
-        <div style={{ marginBottom: "1.25rem" }}>
-          <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: "0.4rem" }}>Email</label>
-          <input value={email} disabled style={{ width: "100%", opacity: 0.6, cursor: "not-allowed" }} />
-        </div>
-        <button onClick={saveProfile} disabled={saving} style={{ background: "var(--accent)", color: "white", border: "none", borderRadius: "var(--radius-sm)", padding: "0.6rem 1.4rem", fontWeight: 700, fontSize: "0.9rem", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
-          {saving ? "Saving..." : saved ? "✅ Saved!" : "Save Profile"}
-        </button>
+    <div style={{ padding: '32px', maxWidth: '860px' }}>
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>Settings</h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '15px', margin: 0 }}>Manage your account, plan, and preferences.</p>
       </div>
 
-      {/* Theme */}
-      <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "1.5rem", marginBottom: "1.5rem" }}>
-        <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <span>🎨</span> Theme
-        </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.75rem" }}>
-          {THEMES.map(t => (
-            <button
-              key={t.id}
-              onClick={() => applyTheme(t.id)}
-              style={{
-                background: "var(--bg-elevated)",
-                border: `2px solid ${theme === t.id ? "var(--accent)" : "var(--border)"}`,
-                borderRadius: "var(--radius)",
-                padding: "1rem 0.5rem 0.75rem",
-                cursor: "pointer",
-                transition: "all 0.15s",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "0.5rem",
-                boxShadow: theme === t.id ? "0 0 0 1px var(--accent)" : "none",
-              }}
-            >
-              {/* Color preview */}
-              <div style={{ width: 40, height: 40, borderRadius: 8, overflow: "hidden", position: "relative", flexShrink: 0 }}>
-                <div style={{ position: "absolute", inset: 0, background: t.colors[0] }} />
-                <div style={{ position: "absolute", bottom: 0, right: 0, width: 22, height: 22, background: t.colors[1], borderRadius: "8px 0 0 0" }} />
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '28px', background: 'var(--bg-secondary)', padding: '4px', borderRadius: '10px', width: 'fit-content', border: '1px solid var(--border)' }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id as typeof tab)}
+            style={{ padding: '8px 18px', borderRadius: '7px', border: 'none', background: tab === t.id ? 'var(--accent)' : 'transparent', color: tab === t.id ? '#fff' : 'var(--text-secondary)', fontSize: '13px', fontWeight: tab === t.id ? 600 : 400, cursor: 'pointer', transition: 'all 0.15s' }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Profile Tab */}
+      {tab === 'profile' && (
+        <div style={{ background: 'var(--bg-secondary)', borderRadius: '14px', border: '1px solid var(--border)', padding: '28px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 24px' }}>Profile Information</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '480px' }}>
+            {[['Full Name', 'name', 'Your name'], ['Email Address', 'email', 'your@email.com'], ['Company', 'company', 'Optional']].map(([label, key, ph]) => (
+              <div key={key}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>{label}</label>
+                <input value={form[key as keyof typeof form]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                  placeholder={ph}
+                  style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' as const }} />
               </div>
-              <span style={{ fontSize: "0.8rem", fontWeight: theme === t.id ? 700 : 500, color: theme === t.id ? "var(--accent-light)" : "var(--text-muted)" }}>
-                {t.label}
-              </span>
+            ))}
+            <button onClick={saveProfile}
+              style={{ padding: '11px 24px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', width: 'fit-content', marginTop: '4px' }}>
+              {saved ? 'Saved!' : 'Save Changes'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Billing Tab */}
+      {tab === 'billing' && (
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+            {plans.map(plan => (
+              <div key={plan.name} style={{ background: 'var(--bg-secondary)', borderRadius: '14px', border: plan.current ? '2px solid var(--accent)' : '1px solid var(--border)', padding: '24px', position: 'relative' as const }}>
+                {plan.current && <div style={{ position: 'absolute' as const, top: '-12px', left: '50%', transform: 'translateX(-50%)', padding: '2px 14px', borderRadius: '20px', background: 'var(--accent)', color: '#fff', fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap' as const }}>CURRENT PLAN</div>}
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: plan.color, textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginBottom: '4px' }}>{plan.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
+                    <span style={{ fontSize: '32px', fontWeight: 800, color: 'var(--text-primary)' }}>{plan.price}</span>
+                    <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{plan.period}</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                  {plan.features.map((f, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={plan.color} strokeWidth="2.5"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      {f}
+                    </div>
+                  ))}
+                </div>
+                <button style={{ width: '100%', padding: '10px', borderRadius: '8px', border: plan.current ? '1px solid var(--border)' : 'none', background: plan.current ? 'transparent' : plan.color, color: plan.current ? 'var(--text-secondary)' : '#fff', fontSize: '13px', fontWeight: 600, cursor: plan.current ? 'default' : 'pointer' }}>
+                  {plan.current ? 'Current Plan' : 'Upgrade'}
+                </button>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: 'var(--bg-secondary)', borderRadius: '14px', border: '1px solid var(--border)', padding: '24px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 16px' }}>Billing History</h3>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center', padding: '20px' }}>No billing history yet.</div>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications Tab */}
+      {tab === 'notifications' && (
+        <div style={{ background: 'var(--bg-secondary)', borderRadius: '14px', border: '1px solid var(--border)', padding: '28px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 24px' }}>Notification Preferences</h2>
+          {[['Daily Picks digest email', true], ['Trending alerts', true], ['Watchlist updates', false], ['Product updates & news', true]].map(([label, def], i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: i < 3 ? '1px solid var(--border)' : 'none' }}>
+              <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{String(label)}</span>
+              <div style={{ width: '40px', height: '22px', borderRadius: '11px', background: def ? 'var(--accent)' : 'var(--border)', position: 'relative' as const, cursor: 'pointer' }}>
+                <div style={{ position: 'absolute' as const, top: '3px', left: def ? '20px' : '3px', width: '16px', height: '16px', borderRadius: '50%', background: '#fff', transition: '0.2s' }} />
+              </div>
+            </div>
           ))}
         </div>
-        <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.75rem" }}>
-          Theme applies instantly across the entire app and is remembered on next visit.
-        </p>
-      </div>
+      )}
 
-      {/* Usage */}
-      <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "1.5rem", marginBottom: "1.5rem" }}>
-        <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <span>📊</span> Usage
-        </h2>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-          <span style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>Credits used</span>
-          <span style={{ fontWeight: 700, color: "var(--accent-light)" }}>{credits} / {maxCredits}</span>
+      {/* API Tab */}
+      {tab === 'api' && (
+        <div style={{ background: 'var(--bg-secondary)', borderRadius: '14px', border: '1px solid var(--border)', padding: '28px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px' }}>API Access</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '0 0 24px' }}>API access is available on the Pro and Agency plans.</p>
+          <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>Upgrade to Pro to get your API key.</div>
         </div>
-        <div style={{ height: 8, background: "var(--bg-elevated)", borderRadius: 999, overflow: "hidden", marginBottom: "1rem" }}>
-          <div style={{ height: "100%", width: `${Math.min(100, (credits / maxCredits) * 100)}%`, background: "linear-gradient(90deg, var(--accent), var(--accent-light))", borderRadius: 999, transition: "width 0.5s ease" }} />
-        </div>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
-          <span style={{ fontSize: "0.75rem", background: "var(--accent-glow)", color: "var(--accent-light)", border: "1px solid var(--border-accent)", borderRadius: 999, padding: "0.15rem 0.6rem", fontWeight: 700, textTransform: "uppercase" }}>{plan} plan</span>
-        </div>
-      </div>
-
-      {/* Billing */}
-      <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "1.5rem" }}>
-        <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <span>💳</span> Plan & Billing
-        </h2>
-        <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
-          Upgrade to unlock more credits, deeper analysis, and priority processing.
-        </p>
-        <button onClick={() => window.location.href = "/dashboard/billing"} style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-light))", color: "white", border: "none", borderRadius: "var(--radius-sm)", padding: "0.65rem 1.4rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer", boxShadow: "0 4px 12px var(--accent-glow)" }}>
-          View Plans & Billing →
-        </button>
-      </div>
+      )}
     </div>
   );
 }
