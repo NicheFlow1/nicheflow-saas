@@ -3,13 +3,19 @@
   --bg-surface: #16161e;
   --bg-card: #1c1c27;
   --bg-elevated: #22223a;
+  --bg-hover: #1e1e2e;
+  --bg-subtle: #1a1a24;
   --accent: #7c3aed;
   --accent-light: #a78bfa;
   --accent-glow: rgba(124, 58, 237, 0.3);
+  --brand-purple: #7c3aed;
+  --brand-purple-light: #a78bfa;
   --text-primary: #f0f0ff;
   --text-secondary: #a8a8c0;
   --text-muted: #6b6b8a;
   --border: rgba(255,255,255,0.08);
+  --border-base: rgba(255,255,255,0.08);
+  --border-subtle: rgba(255,255,255,0.05);
   --border-accent: rgba(124, 58, 237, 0.4);
   --success: #10b981;
   --warning: #f59e0b;
@@ -24,32 +30,39 @@
   --bg-surface: #0d0d1f;
   --bg-card: #12122a;
   --bg-elevated: #181836;
+  --bg-hover: #10102a;
   --accent: #6d28d9;
   --accent-light: #8b5cf6;
+  --brand-purple: #6d28d9;
 }
 [data-theme="light"] {
   --bg-base: #f8f8ff;
   --bg-surface: #ffffff;
   --bg-card: #f0f0f8;
   --bg-elevated: #e8e8f5;
+  --bg-hover: #eaeaf5;
   --accent: #7c3aed;
   --accent-light: #6d28d9;
+  --brand-purple: #7c3aed;
   --text-primary: #0f0f1a;
   --text-secondary: #3a3a5c;
   --text-muted: #6b6b8a;
   --border: rgba(0,0,0,0.1);
+  --border-base: rgba(0,0,0,0.1);
+  --border-subtle: rgba(0,0,0,0.06);
 }
 [data-theme="purple"] {
   --bg-base: #120a2e;
   --bg-surface: #1a1040;
   --bg-card: #221555;
   --bg-elevated: #2d1f6e;
+  --bg-hover: #1e1248;
   --accent: #a855f7;
   --accent-light: #c084fc;
+  --brand-purple: #a855f7;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* PURPLE SCROLLBAR */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-base); }
 ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 999px; }
@@ -120,3 +133,6 @@ button { cursor: pointer; font-family: inherit; }
 .btn-secondary { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border); }
 .btn-secondary:hover { border-color: var(--accent); color: var(--accent-light); }
 .badge { display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+
+.app-shell { display: flex; min-height: 100vh; background: var(--bg-base); }
+.page-content { flex: 1; overflow-y: auto; }
