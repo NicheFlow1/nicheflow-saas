@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import '@/styles/globals.css';
+import './globals.css';
 
 export const metadata: Metadata = {
   title: 'NicheFlow - AI Market Intelligence',
@@ -10,6 +10,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <script dangerouslySetInnerHTML={{ __html: `
           try {
             var t = localStorage.getItem('nf-theme') || 'dark';
