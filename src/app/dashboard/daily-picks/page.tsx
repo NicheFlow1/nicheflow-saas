@@ -1,93 +1,137 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
 
-const SB = createClient('https://aincmpxokmsygyghvtnm.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpbmNtcHhva21zeWd5Z2h2dG5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyODQ4NzAsImV4cCI6MjA4OTg2MDg3MH0.qy9k6S3pgNv7CPnvJlgqeGzgzHBB0J59cCWVsbSa75U');
+type Pick = {
+  niche: string;
+  score: number;
+  trend: string;
+  competition: string;
+  revenue_potential: string;
+  tags: string[];
+  why: string;
+  keywords: string[];
+};
 
-interface Pick { rank: number; niche: string; signal: string; tam: string; competition: string; entry_angle: string; platform: string; time_sensitive: boolean; score: number; }
+const FALLBACK: Pick[] = [
+  { niche: 'AI-Powered Pet Health Monitors', score: 91, trend: 'rising', competition: 'low', revenue_potential: '$2k–$8k/mo', tags: ['pets','AI','hardware'], why: 'Pet owners increasingly seek data-driven health insights. Wearable tech for pets is emerging fast with almost no established players.', keywords: ['pet health tracker','dog vital monitor','smart pet collar'] },
+  { niche: 'Longevity & Anti-Aging Supplements', score: 88, trend: 'rising', competition: 'medium', revenue_potential: '$5k–$20k/mo', tags: ['health','biotech','supplements'], why: 'Biohacking audience is growing rapidly. Premium longevity supplements command high margins with subscription potential.', keywords: ['NMN supplement','longevity stack','anti-aging protocol'] },
+  { niche: 'Remote Work Ergonomics Consulting', score: 84, trend: 'stable', competition: 'low', revenue_potential: '$3k–$12k/mo', tags: ['remote','consulting','B2B'], why: 'Companies are spending on remote work setup stipends. Ergonomics consultants who serve HR depts can close $500–$2k contracts.', keywords: ['remote ergonomics consultant','home office setup','WFH injury prevention'] },
+  { niche: 'Micro-SaaS for Shopify Sellers', score: 87, trend: 'rising', competition: 'medium', revenue_potential: '$4k–$15k/mo', tags: ['SaaS','ecommerce','dev'], why: 'Shopify has 4M+ stores. Micro-tools solving a single pain point (inventory, reviews, upsells) sell well at $9–$49/mo.', keywords: ['shopify app','inventory management app','shopify automation tool'] },
+  { niche: 'Solopreneur Productivity Courses', score: 82, trend: 'stable', competition: 'medium', revenue_potential: '$2k–$10k/mo', tags: ['education','creator','productivity'], why: 'The creator economy is fueling demand for practical systems for solo operators. Course + community combos are the proven model.', keywords: ['solopreneur systems','one person business course','productivity for freelancers'] },
+];
+
+const TREND_COLOR: Record<string, string> = { rising: '#10b981', stable: '#f59e0b', declining: '#ef4444' };
+const COMP_COLOR: Record<string, string> = { low: '#10b981', medium: '#f59e0b', high: '#ef4444' };
 
 export default function DailyPicksPage() {
   const [picks, setPicks] = useState<Pick[]>([]);
   const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState<string | null>(null);
-  const [added, setAdded] = useState<Set<string>>(new Set());
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     (async () => {
-      const { data: { session } } = await SB.auth.getSession();
-      const token = session?.access_token || '';
       try {
-        const r = await fetch('/api/autopilot', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ action: 'daily_picks' }) });
-        const d = await r.json();
-        setPicks(d.picks || []);
-      } catch { setPicks(FALLBACK); }
-      setLoading(false);
+        const res = await fetch('/api/autopilot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'daily_picks' }),
+        });
+        const data = await res.json();
+        const list: Pick[] = Array.isArray(data.picks) && data.picks.length
+          ? data.picks
+          : Array.isArray(data) && data.length ? data : [];
+        setPicks(list.length ? list : FALLBACK);
+      } catch {
+        setPicks(FALLBACK);
+        setError('Using cached picks — live data unavailable.');
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
-  const addToWatchlist = async (pick: Pick) => {
-    setAdding(pick.niche);
-    const { data: { session } } = await SB.auth.getSession();
-    await fetch('/api/autopilot', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ action: 'watchlist_add', niche: pick.niche, score: pick.score, signal: pick.signal, category: pick.platform }) });
-    setAdded(prev => new Set([...prev, pick.niche]));
-    setAdding(null);
+  const toggleSave = (niche: string) => {
+    setSaved(prev => {
+      const next = new Set(prev);
+      next.has(niche) ? next.delete(niche) : next.add(niche);
+      return next;
+    });
   };
-
-  const scoreColor = (s: number) => s >= 88 ? '#22c55e' : s >= 78 ? '#f59e0b' : '#6b7280';
-  const competColor = (c: string) => c === 'Low' ? '#22c55e' : c === 'Medium' ? '#f59e0b' : '#ef4444';
 
   return (
     <div style={{ padding: '32px', maxWidth: '960px' }}>
-      <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-          </div>
-          <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Daily Picks</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '2px 0 0' }}>5 AI-curated niche opportunities — refreshed every 24 hrs</p>
-          </div>
+      {/* Header */}
+      <div style={{ marginBottom: '28px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Daily Picks</h1>
+          <span style={{ background: 'var(--accent)', color: '#fff', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '999px', letterSpacing: '0.5px' }}>AI CURATED</span>
         </div>
-        <div style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--bg-card)', border: '1px solid var(--border-base)', padding: '6px 12px', borderRadius: '8px' }}>
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>
+          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} — Top niche opportunities scored by NicheFlow AI.
+        </p>
+        {error && <p style={{ color: 'var(--warning)', fontSize: '12px', marginTop: '6px' }}>⚠ {error}</p>}
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)', padding: '60px 0' }}>
-          <div style={{ width: 20, height: 20, border: '2px solid var(--border-base)', borderTopColor: 'var(--brand-purple)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          <span>Loading today\'s picks from AI...</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '80px 0' }}>
+          <div style={{ width: 40, height: 40, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}/>
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>AI is analyzing today&apos;s opportunities…</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {picks.map((p, i) => (
-            <div key={i} style={{ background: 'var(--bg-card)', borderRadius: '14px', border: '1px solid var(--border-base)', padding: '22px 24px', display: 'flex', gap: '20px' }}>
-              {/* Rank + Score */}
-              <div style={{ flexShrink: 0, width: '56px', textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>#{p.rank || i+1}</div>
-                <div style={{ fontSize: '28px', fontWeight: 800, color: scoreColor(p.score), lineHeight: 1 }}>{p.score}</div>
-                <div style={{ fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '2px' }}>score</div>
+            <div key={p.niche} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px', transition: 'border-color 0.2s' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'}
+            >
+              {/* Top row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent)', color: '#fff', fontWeight: 800, fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</div>
+                  <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{p.niche}</h3>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {/* Score */}
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '22px', fontWeight: 800, color: p.score >= 85 ? '#10b981' : p.score >= 70 ? '#f59e0b' : '#ef4444' }}>{p.score}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>SCORE</div>
+                  </div>
+                  {/* Save */}
+                  <button onClick={() => toggleSave(p.niche)} style={{ background: saved.has(p.niche) ? 'var(--accent)' : 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', color: saved.has(p.niche) ? '#fff' : 'var(--text-muted)', padding: '6px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                    {saved.has(p.niche) ? '✓ Saved' : '+ Save'}
+                  </button>
+                </div>
               </div>
-              {/* Content */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{p.niche}</span>
-                  {p.time_sensitive && <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '10px', background: '#ef444422', color: '#ef4444', letterSpacing: '0.3px' }}>TIME-SENSITIVE</span>}
-                  <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: '#7c3aed22', color: '#7c3aed' }}>{p.platform}</span>
-                </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', margin: '0 0 12px', lineHeight: 1.6 }}>{p.signal}</p>
-                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                  <div><div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>Market Size</div><div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{p.tam}</div></div>
-                  <div><div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>Competition</div><div style={{ fontSize: '14px', fontWeight: 700, color: competColor(p.competition) }}>{p.competition}</div></div>
-                </div>
-                <div style={{ background: 'var(--bg-hover)', borderRadius: '8px', padding: '10px 14px', fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '14px' }}>
-                  <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Entry angle: </span>{p.entry_angle}
-                </div>
-                <button onClick={() => addToWatchlist(p)} disabled={added.has(p.niche) || adding === p.niche} style={{ background: added.has(p.niche) ? 'var(--bg-hover)' : 'var(--brand-purple)', color: added.has(p.niche) ? 'var(--text-muted)' : '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: added.has(p.niche) ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
-                  {added.has(p.niche) ? 'Saved to Watchlist' : adding === p.niche ? 'Saving...' : 'Add to Watchlist'}
-                </button>
+
+              {/* Meta badges */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                <span style={{ background: TREND_COLOR[p.trend] + '22', color: TREND_COLOR[p.trend], border: `1px solid ${TREND_COLOR[p.trend]}44`, borderRadius: '6px', padding: '3px 10px', fontSize: '12px', fontWeight: 600 }}>
+                  {p.trend === 'rising' ? '↑' : p.trend === 'declining' ? '↓' : '→'} {p.trend}
+                </span>
+                <span style={{ background: COMP_COLOR[p.competition] + '22', color: COMP_COLOR[p.competition], border: `1px solid ${COMP_COLOR[p.competition]}44`, borderRadius: '6px', padding: '3px 10px', fontSize: '12px', fontWeight: 600 }}>
+                  {p.competition} competition
+                </span>
+                <span style={{ background: '#3b82f622', color: '#60a5fa', border: '1px solid #3b82f644', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', fontWeight: 600 }}>
+                  💰 {p.revenue_potential}
+                </span>
+                {p.tags?.map(t => (
+                  <span key={t} style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', borderRadius: '6px', padding: '3px 10px', fontSize: '11px' }}>#{t}</span>
+                ))}
               </div>
+
+              {/* Why */}
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '12px' }}>{p.why}</p>
+
+              {/* Keywords */}
+              {p.keywords?.length > 0 && (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', alignSelf: 'center' }}>Keywords:</span>
+                  {p.keywords.map(k => (
+                    <span key={k} style={{ background: 'var(--bg-elevated)', color: 'var(--accent)', border: '1px solid var(--border)', borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: 500 }}>{k}</span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -95,11 +139,3 @@ export default function DailyPicksPage() {
     </div>
   );
 }
-
-const FALLBACK: Pick[] = [
-  { rank:1, niche:'AI Voice Cloning Tools', signal:'Voice synthesis costs dropped 90% — SaaS gap wide open for creators and podcasters.', tam:'$1.8B', competition:'Low', entry_angle:'Niche tool for content creators needing consistent voice branding across platforms.', platform:'TikTok', time_sensitive:true, score:89 },
-  { rank:2, niche:'Longevity Protocol Coaching', signal:'Bryan Johnson effect driving massive search volume surge — longevity is the new wellness.', tam:'$890M', competition:'Medium', entry_angle:'Affordable online coaching + curated supplement stack guide for men 35-55.', platform:'YouTube', time_sensitive:false, score:84 },
-  { rank:3, niche:'Micro SaaS for Real Estate Agents', signal:'NAR rule changes creating urgent tool demand among buyer agents nationwide.', tam:'$3.2B', competition:'Medium', entry_angle:'Lead follow-up automation specifically designed for post-NAR buyer agents.', platform:'LinkedIn', time_sensitive:true, score:81 },
-  { rank:4, niche:'Solopreneur Legal Templates', signal:'Spike in freelancers needing contract protection as gig economy grows post-2025.', tam:'$420M', competition:'Low', entry_angle:'Notion/PDF template pack sold on Gumroad targeting new freelancers and consultants.', platform:'Reddit', time_sensitive:false, score:77 },
-  { rank:5, niche:'Pet Longevity Products', signal:'Human longevity trend crossing into pet care — proven demand with pet humanization wave.', tam:'$650M', competition:'Medium', entry_angle:'DTC supplement brand for senior dogs and cats with transparent vet partnerships.', platform:'Instagram', time_sensitive:false, score:75 },
-];
