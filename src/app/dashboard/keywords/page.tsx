@@ -1,120 +1,183 @@
 'use client';
 import { useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
 
-const SB = createClient('https://aincmpxokmsygyghvtnm.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpbmNtcHhva21zeWd5Z2h2dG5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyODQ4NzAsImV4cCI6MjA4OTg2MDg3MH0.qy9k6S3pgNv7CPnvJlgqeGzgzHBB0J59cCWVsbSa75U');
+type Keyword = { keyword: string; volume: number; difficulty: number; cpc: number; intent: string };
+type Cluster = { cluster: string; keywords: Keyword[] };
 
-interface KW { term: string; volume: string; difficulty: number; cpc: string; }
-interface Cluster { name: string; intent: string; volume: string; difficulty: string; content_angle: string; keywords: KW[]; }
+const FALLBACK: Cluster[] = [
+  {
+    cluster: 'AI Side Hustle',
+    keywords: [
+      { keyword: 'ai side hustle ideas', volume: 22000, difficulty: 32, cpc: 1.80, intent: 'informational' },
+      { keyword: 'make money with ai tools', volume: 18000, difficulty: 28, cpc: 2.10, intent: 'commercial' },
+      { keyword: 'ai freelancing guide', volume: 9500, difficulty: 24, cpc: 1.50, intent: 'informational' },
+      { keyword: 'chatgpt income ideas', volume: 14000, difficulty: 30, cpc: 1.90, intent: 'commercial' },
+    ],
+  },
+  {
+    cluster: 'Digital Product Business',
+    keywords: [
+      { keyword: 'sell digital products online', volume: 27000, difficulty: 45, cpc: 2.60, intent: 'commercial' },
+      { keyword: 'digital product ideas 2025', volume: 19000, difficulty: 38, cpc: 2.20, intent: 'informational' },
+      { keyword: 'etsy digital downloads', volume: 31000, difficulty: 41, cpc: 1.70, intent: 'transactional' },
+      { keyword: 'passive income digital products', volume: 15000, difficulty: 36, cpc: 2.80, intent: 'commercial' },
+    ],
+  },
+  {
+    cluster: 'Micro SaaS',
+    keywords: [
+      { keyword: 'micro saas ideas', volume: 12000, difficulty: 29, cpc: 3.40, intent: 'informational' },
+      { keyword: 'build micro saas product', volume: 8200, difficulty: 33, cpc: 3.10, intent: 'informational' },
+      { keyword: 'solo founder saas', volume: 6500, difficulty: 25, cpc: 2.90, intent: 'informational' },
+      { keyword: 'saas startup no code', volume: 9800, difficulty: 31, cpc: 3.60, intent: 'commercial' },
+    ],
+  },
+];
+
+const INTENT_COLOR: Record<string, string> = {
+  informational: '#3b82f6',
+  commercial: '#f59e0b',
+  transactional: '#10b981',
+  navigational: '#8b5cf6',
+};
+
+function DiffBar({ value }: { value: number }) {
+  const color = value < 30 ? '#10b981' : value < 60 ? '#f59e0b' : '#ef4444';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ flex: 1, height: 6, background: 'var(--bg-elevated)', borderRadius: 999, overflow: 'hidden' }}>
+        <div style={{ width: `${value}%`, height: '100%', background: color, borderRadius: 999 }}/>
+      </div>
+      <span style={{ fontSize: '12px', color, fontWeight: 600, width: 24, textAlign: 'right' }}>{value}</span>
+    </div>
+  );
+}
 
 export default function KeywordsPage() {
   const [query, setQuery] = useState('');
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState<Record<number, boolean>>({ 0: true });
-  const [copied, setCopied] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [open, setOpen] = useState<Set<number>>(new Set([0]));
+  const [hasSearched, setHasSearched] = useState(false);
 
-  const generate = async () => {
+  const search = async () => {
     if (!query.trim()) return;
     setLoading(true);
-    setClusters([]);
-    const { data: { session } } = await SB.auth.getSession();
+    setError('');
+    setHasSearched(true);
     try {
-      const r = await fetch('/api/autopilot', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ action: 'keyword_clusters', seed: query }) });
-      const d = await r.json();
-      setClusters(d.clusters || []);
-      setOpen({ 0: true });
-    } catch { setClusters([]); }
-    setLoading(false);
+      const res = await fetch('/api/autopilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'keyword_clusters', seed: query.trim(), niche: query.trim() }),
+      });
+      const data = await res.json();
+      const list: Cluster[] = Array.isArray(data.clusters) && data.clusters.length ? data.clusters
+        : Array.isArray(data) && data.length ? data : [];
+      setClusters(list.length ? list : FALLBACK);
+      if (!list.length) setError('Live data unavailable — showing sample clusters.');
+      setOpen(new Set([0]));
+    } catch {
+      setClusters(FALLBACK);
+      setError('Using sample data — check your connection.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const copyAll = (cluster: Cluster) => {
-    const text = cluster.keywords.map(k => k.term).join('\n');
-    navigator.clipboard.writeText(text);
-    setCopied(cluster.name);
-    setTimeout(() => setCopied(null), 2000);
+  const toggle = (i: number) => {
+    setOpen(prev => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; });
   };
 
-  const intentColor = (i: string) => ({ informational: '#3b82f6', commercial: '#22c55e', transactional: '#ef4444', navigational: '#f59e0b' }[i.toLowerCase()] || '#6b7280');
-  const diffColor = (d: number) => d < 30 ? '#22c55e' : d < 50 ? '#f59e0b' : '#ef4444';
+  const allKw = (clusters.length ? clusters : FALLBACK).flatMap(c => c.keywords);
+  const avgVol = allKw.length ? Math.round(allKw.reduce((a, k) => a + k.volume, 0) / allKw.length) : 0;
+  const avgDiff = allKw.length ? Math.round(allKw.reduce((a, k) => a + k.difficulty, 0) / allKw.length) : 0;
 
-  const totalKws = clusters.reduce((a, c) => a + c.keywords.length, 0);
-  const avgDiff = clusters.length ? Math.round(clusters.reduce((a, c) => a + c.keywords.reduce((x, k) => x + k.difficulty, 0) / (c.keywords.length || 1), 0) / clusters.length) : 0;
+  const display = clusters.length ? clusters : (hasSearched ? FALLBACK : FALLBACK);
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1000px' }}>
-      <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'linear-gradient(135deg,#f59e0b,#d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
-        </div>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Keyword Clusters</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '2px 0 0' }}>AI-grouped keywords by intent — ready for your SEO content strategy</p>
-        </div>
+    <div style={{ padding: '32px', maxWidth: '960px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '28px' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 6px' }}>Keyword Clusters</h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>Enter a niche to generate grouped keyword clusters with volume, difficulty, CPC and intent.</p>
       </div>
 
-      <div style={{ display: 'flex', gap: '10px', marginBottom: clusters.length ? '20px' : '32px' }}>
-        <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && generate()}
-          placeholder="Enter a niche or seed keyword (e.g. keto diet, AI agents, home gym)"
-          style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border-base)', borderRadius: '10px', padding: '13px 16px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none' }} />
-        <button onClick={generate} disabled={loading || !query.trim()} style={{ background: loading ? 'var(--bg-hover)' : 'var(--brand-purple)', color: loading ? 'var(--text-muted)' : '#fff', border: 'none', borderRadius: '10px', padding: '13px 28px', fontSize: '14px', fontWeight: 700, cursor: loading ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
-          {loading ? 'Generating...' : 'Generate Clusters'}
+      {/* Search bar */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && search()}
+          placeholder="e.g. AI productivity tools, keto supplements, micro SaaS…"
+          style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px 16px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none' }}
+        />
+        <button onClick={search} disabled={loading} style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px 24px', fontWeight: 700, fontSize: '14px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, flexShrink: 0 }}>
+          {loading ? 'Analyzing…' : 'Analyze →'}
         </button>
       </div>
 
-      {/* Summary row */}
-      {clusters.length > 0 && (
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-          {[{ label: 'Clusters', value: String(clusters.length), color: '#7c3aed' }, { label: 'Total Keywords', value: String(totalKws), color: '#3b82f6' }, { label: 'Avg Difficulty', value: String(avgDiff), color: diffColor(avgDiff) }].map(s => (
-            <div key={s.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-base)', borderRadius: '10px', padding: '12px 18px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <div style={{ fontSize: '20px', fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      {error && <p style={{ color: 'var(--warning)', fontSize: '12px', marginBottom: '16px' }}>⚠ {error}</p>}
 
-      {clusters.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {clusters.map((cluster, ci) => (
-            <div key={ci} style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-base)', overflow: 'hidden' }}>
-              <button onClick={() => setOpen(o => ({ ...o, [ci]: !o[ci] }))} style={{ width: '100%', background: 'none', border: 'none', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', textAlign: 'left' }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: intentColor(cluster.intent), flexShrink: 0 }} />
-                <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{cluster.name}</span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: intentColor(cluster.intent), background: intentColor(cluster.intent) + '22', padding: '2px 10px', borderRadius: '12px' }}>{cluster.intent}</span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{cluster.volume}</span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{cluster.keywords.length} kws</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open[ci] ? 'rotate(180deg)' : 'none', transition: '0.2s', flexShrink: 0 }}><path d="M6 9l6 6 6-6" /></svg>
-              </button>
-              {open[ci] && (
-                <div style={{ borderTop: '1px solid var(--border-base)' }}>
-                  {/* Content angle */}
-                  <div style={{ padding: '10px 20px 14px', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                    <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}><span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Content angle: </span>{cluster.content_angle}</div>
-                    <button onClick={() => copyAll(cluster)} style={{ background: 'none', border: '1px solid var(--border-base)', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                      {copied === cluster.name ? 'Copied!' : 'Copy all'}
-                    </button>
-                  </div>
-                  {/* Header */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 80px 70px', borderBottom: '1px solid var(--border-base)', background: 'var(--bg-hover)' }}>
-                    {['Keyword','Volume','Difficulty','CPC'].map(h => <div key={h} style={{ padding: '8px 16px', fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: h === 'Keyword' ? 'left' : 'right' }}>{h}</div>)}
-                  </div>
-                  {cluster.keywords.map((kw, ki) => (
-                    <div key={ki} style={{ display: 'grid', gridTemplateColumns: '1fr 90px 80px 70px', borderBottom: ki < cluster.keywords.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                      <div style={{ padding: '11px 16px', fontSize: '13.5px', color: 'var(--text-primary)' }}>{kw.term}</div>
-                      <div style={{ padding: '11px 16px', fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'right' }}>{kw.volume}</div>
-                      <div style={{ padding: '11px 16px', textAlign: 'right' }}>
-                        <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, background: diffColor(kw.difficulty) + '22', color: diffColor(kw.difficulty) }}>{kw.difficulty}</span>
-                      </div>
-                      <div style={{ padding: '11px 16px', fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'right' }}>{kw.cpc}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Summary stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
+        {[
+          { label: 'Clusters', value: display.length },
+          { label: 'Total Keywords', value: allKw.length || display.flatMap(c => c.keywords).length },
+          { label: 'Avg Volume', value: (avgVol || Math.round(display.flatMap(c => c.keywords).reduce((a,k)=>a+k.volume,0) / Math.max(display.flatMap(c=>c.keywords).length,1))).toLocaleString() },
+        ].map(s => (
+          <div key={s.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px 18px' }}>
+            <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--accent)' }}>{s.value}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Clusters */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {display.map((cluster, i) => (
+          <div key={cluster.cluster} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '14px', overflow: 'hidden' }}>
+            {/* Cluster header */}
+            <button onClick={() => toggle(i)} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '8px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800, color: '#fff', flexShrink: 0 }}>{i+1}</div>
+                <span style={{ fontWeight: 700, fontSize: '15px' }}>{cluster.cluster}</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{cluster.keywords.length} keywords</span>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: open.has(i) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--text-muted)' }}><path d="M19 9l-7 7-7-7"/></svg>
+            </button>
+
+            {/* Keyword table */}
+            {open.has(i) && (
+              <div style={{ padding: '0 20px 16px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                      {['Keyword', 'Volume', 'Difficulty', 'CPC', 'Intent'].map(h => (
+                        <th key={h} style={{ textAlign: h === 'Keyword' ? 'left' : 'center', padding: '8px 8px', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cluster.keywords.map(k => (
+                      <tr key={k.keyword} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                        <td style={{ padding: '10px 8px', fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 }}>{k.keyword}</td>
+                        <td style={{ padding: '10px 8px', textAlign: 'center', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>{k.volume.toLocaleString()}</td>
+                        <td style={{ padding: '10px 8px', minWidth: '120px' }}><DiffBar value={k.difficulty}/></td>
+                        <td style={{ padding: '10px 8px', textAlign: 'center', fontSize: '13px', color: '#10b981', fontWeight: 600 }}>${k.cpc.toFixed(2)}</td>
+                        <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                          <span style={{ background: INTENT_COLOR[k.intent] + '22', color: INTENT_COLOR[k.intent], border: `1px solid ${INTENT_COLOR[k.intent]}44`, borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: 600 }}>{k.intent}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
