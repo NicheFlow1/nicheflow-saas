@@ -25,7 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-base)' }}>
       <Sidebar profile={profile} />
-      <main style={{ marginLeft: '240px', flex: 1, minHeight: '100vh', overflowY: 'auto' }}>
+      <main style={{ marginLeft: '220px', flex: 1, minHeight: '100vh', overflowY: 'auto' }}>
         {children}
       </main>
     </div>
