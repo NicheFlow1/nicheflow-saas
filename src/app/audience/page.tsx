@@ -1,153 +1,126 @@
 'use client';
 import { useState } from 'react';
-
-interface AudienceData {
-  size: string;
-  demographics: { age: string; gender: string; income: string };
-  platforms: Array<{ name: string; type: string; members: string }>;
-  pain_points: string[];
-  buying_triggers: string[];
-  best_channels: string[];
-  influencer_types: string[];
-  willingness_to_pay: string;
-  keywords: string[];
-}
+import Link from 'next/link';
 
 export default function AudiencePage() {
   const [niche, setNiche] = useState('');
-  const [data, setData] = useState<AudienceData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
 
-  async function analyze() {
+  const run = async () => {
     if (!niche.trim()) return;
-    setLoading(true);
-    setError('');
-    setData(null);
+    setLoading(true); setError(''); setResult(null);
     try {
       const res = await fetch('/api/autopilot', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'audience_intel', niche })
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action: 'audience_intel', niche: niche.trim() }),
       });
-      const json = await res.json();
-      if (json.audience) setData(json.audience);
-      else setError('No data returned. Try a different niche.');
-    } catch (e) {
-      setError('Failed to fetch audience data.');
-    } finally {
-      setLoading(false);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setResult(data);
+    } catch (e: any) {
+      setError(e.message || 'Failed to analyze audience.');
     }
-  }
+    setLoading(false);
+  };
 
-  const sectionStyle = { background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px', marginBottom: '16px' };
-  const labelStyle = { fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginBottom: '12px' };
-  const tagStyle = { padding: '4px 12px', borderRadius: '20px', fontSize: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border)', color: 'var(--text-primary)' };
+  const DEMO = {
+    primary_persona: { name: 'Busy Professional Alex', age: '28–42', income: '$65K–$120K', pain_points: ['No time to research', 'Overwhelmed by options', 'Wants proven shortcuts'] },
+    secondary_persona: { name: 'Side-Hustle Sam', age: '22–35', income: '$30K–$60K', pain_points: ['Limited budget', 'Needs quick wins', 'Learning as they go'] },
+    channels: ['YouTube tutorials', 'Reddit communities', 'LinkedIn newsletters', 'Twitter/X threads'],
+    content_angles: ['How I made $X with zero experience', 'The tool I wish I had on day 1', 'Stop making this mistake', '5-minute daily habit that changed everything'],
+    psychographics: { motivations: ['Financial freedom', 'Skill building', 'Status'], fears: ['Wasting money', 'Missing the trend', 'Looking foolish'], values: ['Efficiency', 'Authenticity', 'Results'] },
+    market_size: '$2.4B TAM | $340M SAM',
+  };
+
+  const d = result || (niche ? null : DEMO);
 
   return (
-    <div style={{ padding: '32px', maxWidth: '900px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '32px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Audience Intelligence</h1>
-          <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: '#6366f122', color: '#6366f1', textTransform: 'uppercase' }}>NEW</span>
-        </div>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '15px', margin: 0 }}>Deep audience research for any niche. Understand who they are, where they hang out, and how to reach them.</p>
+    <div style={{padding:'32px', maxWidth:'900px'}}>
+      <div style={{marginBottom:'28px'}}>
+        <h1 style={{fontSize:'24px', fontWeight:800, color:'var(--text-primary)', margin:'0 0 6px'}}>👥 Audience Intelligence</h1>
+        <p style={{color:'var(--text-muted)', fontSize:'14px', margin:0}}>Deep persona profiles, psychographics, channels, and content angles for any niche.</p>
       </div>
 
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '32px' }}>
-        <input
-          value={niche}
-          onChange={e => setNiche(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && analyze()}
-          placeholder="Enter a niche (e.g. sourdough baking, drone photography)"
-          style={{ flex: 1, padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '15px', outline: 'none' }}
-        />
-        <button
-          onClick={analyze}
-          disabled={loading || !niche.trim()}
-          style={{ padding: '12px 24px', borderRadius: '8px', border: 'none', background: 'var(--accent)', color: '#fff', fontSize: '15px', fontWeight: 600, cursor: 'pointer', opacity: loading ? 0.7 : 1, whiteSpace: 'nowrap' }}
-        >
-          {loading ? 'Analyzing...' : 'Analyze Audience'}
+      <div style={{display:'flex', gap:'10px', marginBottom:'28px'}}>
+        <input value={niche} onChange={e => setNiche(e.target.value)} onKeyDown={e => e.key==='Enter' && run()}
+          placeholder="e.g. AI productivity tools, keto supplements, Shopify micro-SaaS…"
+          style={{flex:1, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:'10px', padding:'13px 16px', color:'var(--text-primary)', fontSize:'14px', outline:'none'}}/>
+        <button onClick={run} disabled={loading || !niche.trim()}
+          style={{background:'var(--accent)', color:'#fff', border:'none', borderRadius:'10px', padding:'13px 24px', fontWeight:700, fontSize:'14px', cursor:loading?'not-allowed':'pointer'}}>
+          {loading ? 'Analyzing…' : '🔍 Analyze'}
         </button>
       </div>
 
-      {error && <div style={{ padding: '16px', background: '#ef444422', border: '1px solid #ef444444', borderRadius: '8px', color: '#ef4444', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
+      {error && <p style={{color:'#ef4444', fontSize:'13px', marginBottom:'16px'}}>{error}</p>}
 
-      {data && (
-        <div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '16px' }}>
-            <div style={sectionStyle}>
-              <div style={labelStyle}>Audience Size</div>
-              <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--accent)' }}>{data.size}</div>
-            </div>
-            <div style={sectionStyle}>
-              <div style={labelStyle}>Demographics</div>
-              <div style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.8 }}>
-                <div>Age: <strong>{data.demographics.age}</strong></div>
-                <div>Gender: <strong>{data.demographics.gender}</strong></div>
-                <div>Income: <strong>{data.demographics.income}</strong></div>
+      {d && (
+        <div style={{display:'grid', gap:'16px'}}>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px'}}>
+            {[d.primary_persona, d.secondary_persona].filter(Boolean).map((p: any, i) => (
+              <div key={i} style={{background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:'14px', padding:'20px'}}>
+                <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'4px', fontSize:'15px'}}>{i===0?'🎯 Primary':'👤 Secondary'} Persona</div>
+                <div style={{fontSize:'14px', color:'var(--accent)', fontWeight:700, marginBottom:'8px'}}>{p.name}</div>
+                {p.age && <div style={{fontSize:'12px', color:'var(--text-muted)', marginBottom:'4px'}}>Age: {p.age}</div>}
+                {p.income && <div style={{fontSize:'12px', color:'var(--text-muted)', marginBottom:'10px'}}>Income: {p.income}</div>}
+                <div style={{fontSize:'12px', fontWeight:600, color:'var(--text-secondary)', marginBottom:'6px'}}>Pain Points</div>
+                {(p.pain_points||[]).map((pt: string, j: number) => (
+                  <div key={j} style={{fontSize:'12px', color:'var(--text-muted)', padding:'4px 0', borderBottom:'1px solid var(--border)'}}>• {pt}</div>
+                ))}
               </div>
-            </div>
-            <div style={sectionStyle}>
-              <div style={labelStyle}>Willingness to Pay</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#22c55e' }}>{data.willingness_to_pay}</div>
-            </div>
+            ))}
           </div>
 
-          <div style={sectionStyle}>
-            <div style={labelStyle}>Where They Hang Out</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {data.platforms.map((p, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg-primary)', borderRadius: '8px' }}>
-                  <div>
-                    <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px' }}>{p.name}</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '12px', marginLeft: '8px' }}>{p.type}</span>
-                  </div>
-                  <span style={{ fontSize: '13px', color: 'var(--accent)', fontWeight: 600 }}>{p.members}</span>
-                </div>
+          {d.channels && (
+            <div style={{background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:'14px', padding:'20px'}}>
+              <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'12px'}}>📡 Best Channels to Reach Them</div>
+              <div style={{display:'flex', flexWrap:'wrap', gap:'8px'}}>
+                {d.channels.map((c: string, i: number) => (
+                  <span key={i} style={{background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'8px', padding:'6px 12px', fontSize:'12px', color:'var(--text-secondary)'}}>{c}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {d.content_angles && (
+            <div style={{background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:'14px', padding:'20px'}}>
+              <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'12px'}}>✍️ Winning Content Angles</div>
+              {d.content_angles.map((a: string, i: number) => (
+                <div key={i} style={{padding:'10px 0', borderBottom: i<d.content_angles.length-1?'1px solid var(--border)':'none', fontSize:'13px', color:'var(--text-secondary)'}}>"{a}"</div>
               ))}
             </div>
-          </div>
+          )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-            <div style={sectionStyle}>
-              <div style={labelStyle}>Pain Points</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {data.pain_points.map((p, i) => (
-                  <div key={i} style={{ fontSize: '13px', color: 'var(--text-primary)', padding: '6px 10px', background: '#ef444411', borderRadius: '6px', borderLeft: '3px solid #ef4444' }}>{p}</div>
+          {d.psychographics && (
+            <div style={{background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:'14px', padding:'20px'}}>
+              <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'12px'}}>🧠 Psychographics</div>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'16px'}}>
+                {Object.entries(d.psychographics).map(([k,v]: [string, any]) => (
+                  <div key={k}>
+                    <div style={{fontSize:'11px', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', marginBottom:'8px'}}>{k}</div>
+                    {(Array.isArray(v)?v:[v]).map((i: string, j: number) => (
+                      <div key={j} style={{fontSize:'12px', color:'var(--text-secondary)', padding:'3px 0'}}>• {i}</div>
+                    ))}
+                  </div>
                 ))}
               </div>
             </div>
-            <div style={sectionStyle}>
-              <div style={labelStyle}>Buying Triggers</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {data.buying_triggers.map((t, i) => (
-                  <div key={i} style={{ fontSize: '13px', color: 'var(--text-primary)', padding: '6px 10px', background: '#22c55e11', borderRadius: '6px', borderLeft: '3px solid #22c55e' }}>{t}</div>
-                ))}
+          )}
+
+          {d.market_size && (
+            <div style={{background:'linear-gradient(135deg,#7c3aed18,#10b98118)', border:'1px solid var(--accent)', borderRadius:'14px', padding:'20px', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+              <div>
+                <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'4px'}}>📊 Market Size</div>
+                <div style={{fontSize:'20px', fontWeight:800, color:'var(--accent)'}}>{d.market_size}</div>
               </div>
+              <Link href={`/keywords?seed=${encodeURIComponent(niche)}`}
+                style={{background:'var(--accent)', color:'#fff', borderRadius:'10px', padding:'10px 20px', textDecoration:'none', fontSize:'13px', fontWeight:700}}>
+                Find Keywords →
+              </Link>
             </div>
-          </div>
-
-          <div style={sectionStyle}>
-            <div style={labelStyle}>Best Channels to Reach Them</div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {data.best_channels.map((c, i) => <span key={i} style={tagStyle}>{c}</span>)}
-            </div>
-          </div>
-
-          <div style={sectionStyle}>
-            <div style={labelStyle}>Influencer Types</div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {data.influencer_types.map((t, i) => <span key={i} style={tagStyle}>{t}</span>)}
-            </div>
-          </div>
-
-          <div style={sectionStyle}>
-            <div style={labelStyle}>Keywords to Target</div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {data.keywords.map((k, i) => <span key={i} style={{ ...tagStyle, background: 'var(--accent)', color: '#fff', border: 'none', fontWeight: 600 }}>{k}</span>)}
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>
