@@ -1,24 +1,24 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
+import Sidebar from '@/components/layout/Sidebar';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'NicheFlow - AI Market Intelligence',
-  description: 'Find profitable niches before they go mainstream. Real Google Trends data + AI analysis.',
+  title: 'NicheFlow — AI Niche Research',
+  description: 'Discover, validate, and monetize profitable niches with AI.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <script dangerouslySetInnerHTML={{ __html: `
-          try {
-            var t = localStorage.getItem('nf-theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', t);
-          } catch(e) {}
-        `}} />
-      </head>
-      <body>{children}</body>
+    <html lang="en">
+      <body className={inter.className} style={{margin:0, background:'var(--bg-base)', color:'var(--text-primary)'}}>
+        <Sidebar />
+        <main style={{marginLeft:240, minHeight:'100vh', background:'var(--bg-base)'}}>
+          {children}
+        </main>
+      </body>
     </html>
   );
 }
