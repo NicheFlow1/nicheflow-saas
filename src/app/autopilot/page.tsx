@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
@@ -21,7 +21,7 @@ const SECTIONS: Section[] = [
   { id: 'starter',     label: 'Starter Kit',            icon: '🚀', status: 'pending' },
 ];
 
-export default function AutopilotPage() {
+function AutopilotInner() {
   const params = useSearchParams();
   const [niche, setNiche] = useState(params.get('niche') || '');
   const [running, setRunning] = useState(false);
@@ -87,6 +87,7 @@ export default function AutopilotPage() {
         result: allResults,
       }).catch(() => {});
     }
+    setSaved(true);
   };
 
   useEffect(() => {
@@ -157,7 +158,7 @@ export default function AutopilotPage() {
           )}
 
           {active && results[active] && (
-            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px', animation: 'fadeIn 0.3s ease' }}>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 16px' }}>
                 {sections.find(s => s.id === active)?.icon} {sections.find(s => s.id === active)?.label}
               </h3>
@@ -171,7 +172,7 @@ export default function AutopilotPage() {
             <div style={{ background: 'linear-gradient(135deg,#7c3aed18,#10b98118)', border: '1px solid var(--accent)', borderRadius: '16px', padding: '28px', textAlign: 'center' }}>
               <div style={{ fontSize: '40px', marginBottom: '12px' }}>🎉</div>
               <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px' }}>Full report ready for <span style={{ color: 'var(--accent)' }}>{niche}</span></h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 20px' }}>Click any section on the left to explore. Report auto-saved to Projects.</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 20px' }}>Click any section on the left to explore.{saved ? ' ✅ Report saved to Projects.' : ''}</p>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
                 <Link href="/projects" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)', padding: '10px 20px', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>View in Reports →</Link>
                 <Link href={`/autopilot/starter?niche=${encodeURIComponent(niche)}`} style={{ background: 'var(--accent)', border: 'none', borderRadius: '10px', color: '#fff', padding: '10px 20px', textDecoration: 'none', fontSize: '13px', fontWeight: 700 }}>Build Starter Kit →</Link>
@@ -181,5 +182,13 @@ export default function AutopilotPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AutopilotPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '32px', color: 'var(--text-muted)' }}>Loading…</div>}>
+      <AutopilotInner />
+    </Suspense>
   );
 }
