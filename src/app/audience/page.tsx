@@ -115,7 +115,7 @@ export default function AudiencePage() {
                 <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'4px'}}> Market Size</div>
                 <div style={{fontSize:'20px', fontWeight:800, color:'var(--accent)'}}>{d.market_size}</div>
               </div>
-              <Link href={`/keywords?seed=${encodeURIComponent(niche)}`}
+              <Link href={`/dashboard/keywords?seed=${encodeURIComponent(niche)}`}
                 style={{background:'var(--accent)', color:'#fff', borderRadius:'10px', padding:'10px 20px', textDecoration:'none', fontSize:'13px', fontWeight:700}}>
                 Find Keywords →
               </Link>
