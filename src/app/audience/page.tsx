@@ -40,7 +40,7 @@ export default function AudiencePage() {
   return (
     <div style={{padding:'32px', maxWidth:'900px'}}>
       <div style={{marginBottom:'28px'}}>
-        <h1 style={{fontSize:'24px', fontWeight:800, color:'var(--text-primary)', margin:'0 0 6px'}}>👥 Audience Intelligence</h1>
+        <h1 style={{fontSize:'24px', fontWeight:800, color:'var(--text-primary)', margin:'0 0 6px'}}> Audience Intelligence</h1>
         <p style={{color:'var(--text-muted)', fontSize:'14px', margin:0}}>Deep persona profiles, psychographics, channels, and content angles for any niche.</p>
       </div>
 
@@ -50,7 +50,7 @@ export default function AudiencePage() {
           style={{flex:1, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:'10px', padding:'13px 16px', color:'var(--text-primary)', fontSize:'14px', outline:'none'}}/>
         <button onClick={run} disabled={loading || !niche.trim()}
           style={{background:'var(--accent)', color:'#fff', border:'none', borderRadius:'10px', padding:'13px 24px', fontWeight:700, fontSize:'14px', cursor:loading?'not-allowed':'pointer'}}>
-          {loading ? 'Analyzing…' : '🔍 Analyze'}
+          {loading ? 'Analyzing…' : ' Analyze'}
         </button>
       </div>
 
@@ -61,7 +61,7 @@ export default function AudiencePage() {
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px'}}>
             {[d.primary_persona, d.secondary_persona].filter(Boolean).map((p: any, i) => (
               <div key={i} style={{background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:'14px', padding:'20px'}}>
-                <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'4px', fontSize:'15px'}}>{i===0?'🎯 Primary':'👤 Secondary'} Persona</div>
+                <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'4px', fontSize:'15px'}}>{i===0?' Primary':' Secondary'} Persona</div>
                 <div style={{fontSize:'14px', color:'var(--accent)', fontWeight:700, marginBottom:'8px'}}>{p.name}</div>
                 {p.age && <div style={{fontSize:'12px', color:'var(--text-muted)', marginBottom:'4px'}}>Age: {p.age}</div>}
                 {p.income && <div style={{fontSize:'12px', color:'var(--text-muted)', marginBottom:'10px'}}>Income: {p.income}</div>}
@@ -75,7 +75,7 @@ export default function AudiencePage() {
 
           {d.channels && (
             <div style={{background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:'14px', padding:'20px'}}>
-              <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'12px'}}>📡 Best Channels to Reach Them</div>
+              <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'12px'}}> Best Channels to Reach Them</div>
               <div style={{display:'flex', flexWrap:'wrap', gap:'8px'}}>
                 {d.channels.map((c: string, i: number) => (
                   <span key={i} style={{background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'8px', padding:'6px 12px', fontSize:'12px', color:'var(--text-secondary)'}}>{c}</span>
@@ -86,7 +86,7 @@ export default function AudiencePage() {
 
           {d.content_angles && (
             <div style={{background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:'14px', padding:'20px'}}>
-              <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'12px'}}>✍️ Winning Content Angles</div>
+              <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'12px'}}>️ Winning Content Angles</div>
               {d.content_angles.map((a: string, i: number) => (
                 <div key={i} style={{padding:'10px 0', borderBottom: i<d.content_angles.length-1?'1px solid var(--border)':'none', fontSize:'13px', color:'var(--text-secondary)'}}>"{a}"</div>
               ))}
@@ -95,7 +95,7 @@ export default function AudiencePage() {
 
           {d.psychographics && (
             <div style={{background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:'14px', padding:'20px'}}>
-              <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'12px'}}>🧠 Psychographics</div>
+              <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'12px'}}> Psychographics</div>
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'16px'}}>
                 {Object.entries(d.psychographics).map(([k,v]: [string, any]) => (
                   <div key={k}>
@@ -112,7 +112,7 @@ export default function AudiencePage() {
           {d.market_size && (
             <div style={{background:'linear-gradient(135deg,#7c3aed18,#10b98118)', border:'1px solid var(--accent)', borderRadius:'14px', padding:'20px', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
               <div>
-                <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'4px'}}>📊 Market Size</div>
+                <div style={{fontWeight:700, color:'var(--text-primary)', marginBottom:'4px'}}> Market Size</div>
                 <div style={{fontSize:'20px', fontWeight:800, color:'var(--accent)'}}>{d.market_size}</div>
               </div>
               <Link href={`/keywords?seed=${encodeURIComponent(niche)}`}
