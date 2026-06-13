@@ -107,7 +107,7 @@ export default function ValidatePage() {
               style={{background:'var(--accent)', color:'#fff', borderRadius:'10px', padding:'12px 24px', textDecoration:'none', fontSize:'14px', fontWeight:700}}>
                Run Full Autopilot →
             </Link>
-            <Link href={`/keywords?seed=${encodeURIComponent(niche)}`}
+            <Link href={`/dashboard/keywords?seed=${encodeURIComponent(niche)}`}
               style={{background:'var(--bg-card)', border:'1px solid var(--border)', color:'var(--text-primary)', borderRadius:'10px', padding:'12px 20px', textDecoration:'none', fontSize:'14px', fontWeight:600}}>
                Find Keywords →
             </Link>
