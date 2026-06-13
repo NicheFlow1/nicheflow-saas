@@ -162,7 +162,7 @@ export default function RadarPage() {
                 <Link href={`/validate?niche=${encodeURIComponent(sig.niche)}`} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', padding: '6px 14px', fontSize: '12px', fontWeight: 600, textDecoration: 'none' }}>
                   Validate →
                 </Link>
-                <Link href={`/dashboard/keywords?q=${encodeURIComponent(sig.niche)}`} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', padding: '6px 14px', fontSize: '12px', fontWeight: 600, textDecoration: 'none' }}>
+                <Link href={`/dashboard/dashboard/keywords?q=${encodeURIComponent(sig.niche)}`} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', padding: '6px 14px', fontSize: '12px', fontWeight: 600, textDecoration: 'none' }}>
                   Keywords →
                 </Link>
                 <Link href={`/autopilot?niche=${encodeURIComponent(sig.niche)}`} style={{ background: 'var(--accent)', border: 'none', borderRadius: '8px', color: '#fff', padding: '6px 14px', fontSize: '12px', fontWeight: 700, textDecoration: 'none', marginLeft: 'auto' }}>
