@@ -48,7 +48,7 @@ function TrendingInner() {
   return (
     <div style={{padding:'32px', maxWidth:'1000px'}}>
       <div style={{marginBottom:'28px'}}>
-        <h1 style={{fontSize:'24px', fontWeight:800, color:'var(--text-primary)', margin:'0 0 6px'}}>🔥 Trending Niches</h1>
+        <h1 style={{fontSize:'24px', fontWeight:800, color:'var(--text-primary)', margin:'0 0 6px'}}> Trending Niches</h1>
         <p style={{color:'var(--text-muted)', fontSize:'14px', margin:0}}>Discover high-growth niches before they peak. Powered by real-time signals.</p>
       </div>
 
@@ -58,7 +58,7 @@ function TrendingInner() {
           style={{flex:1, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:'10px', padding:'13px 16px', color:'var(--text-primary)', fontSize:'14px', outline:'none'}}/>
         <button onClick={() => search()} disabled={loading}
           style={{background:'var(--accent)', color:'#fff', border:'none', borderRadius:'10px', padding:'13px 24px', fontWeight:700, fontSize:'14px', cursor:'pointer'}}>
-          {loading ? 'Searching…' : '🔍 Search'}
+          {loading ? 'Searching…' : ' Search'}
         </button>
       </div>
 
@@ -79,9 +79,9 @@ function TrendingInner() {
               <div style={{flex:1, minWidth:0}}>
                 <div style={{fontWeight:700, color:'var(--text-primary)', fontSize:'15px', marginBottom:'4px'}}>{name}</div>
                 <div style={{display:'flex', gap:'16px', flexWrap:'wrap'}}>
-                  <span style={{fontSize:'12px', color:'#10b981', fontWeight:600}}>📈 {growth}</span>
-                  <span style={{fontSize:'12px', color:'var(--text-muted)'}}>🔍 {volume}/mo</span>
-                  <span style={{fontSize:'12px', color:compColor, fontWeight:600}}>⚔️ {comp} competition</span>
+                  <span style={{fontSize:'12px', color:'#10b981', fontWeight:600}}> {growth}</span>
+                  <span style={{fontSize:'12px', color:'var(--text-muted)'}}> {volume}/mo</span>
+                  <span style={{fontSize:'12px', color:compColor, fontWeight:600}}>️ {comp} competition</span>
                 </div>
               </div>
               <div style={{textAlign:'center', flexShrink:0}}>
@@ -91,7 +91,7 @@ function TrendingInner() {
               <div style={{display:'flex', gap:'8px', flexShrink:0}}>
                 <button onClick={() => toggle(name)}
                   style={{background: saved.has(name) ? '#10b98120' : 'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'8px', padding:'7px 12px', fontSize:'12px', color: saved.has(name) ? '#10b981' : 'var(--text-muted)', cursor:'pointer', fontWeight:600}}>
-                  {saved.has(name) ? '✅ Saved' : '+ Save'}
+                  {saved.has(name) ? ' Saved' : '+ Save'}
                 </button>
                 <Link href={`/autopilot?niche=${encodeURIComponent(name)}`}
                   style={{background:'var(--accent)', color:'#fff', borderRadius:'8px', padding:'7px 12px', fontSize:'12px', textDecoration:'none', fontWeight:700}}>
