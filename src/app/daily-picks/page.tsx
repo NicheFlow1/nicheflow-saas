@@ -65,7 +65,7 @@ export default function DailyPicksPage() {
     <div style={{padding:'32px', maxWidth:'1000px'}}>
       <div style={{marginBottom:'28px', display:'flex', alignItems:'flex-end', justifyContent:'space-between'}}>
         <div>
-          <h1 style={{fontSize:'24px', fontWeight:800, color:'var(--text-primary)', margin:'0 0 4px'}}>⚡ Daily Picks</h1>
+          <h1 style={{fontSize:'24px', fontWeight:800, color:'var(--text-primary)', margin:'0 0 4px'}}> Daily Picks</h1>
           <p style={{color:'var(--text-muted)', fontSize:'13px', margin:0}}>{today} · AI-curated high-opportunity niches</p>
         </div>
         <Link href="/trending" style={{fontSize:'13px', color:'var(--accent)', textDecoration:'none', fontWeight:600}}>See all trending →</Link>
@@ -98,9 +98,9 @@ export default function DailyPicksPage() {
                   </div>
                   <p style={{color:'var(--text-muted)', fontSize:'13px', margin:'0 0 10px'}}>{item.why || item.reason || item.summary || ''}</p>
                   <div style={{display:'flex', gap:'20px', flexWrap:'wrap'}}>
-                    {item.growth && <span style={{fontSize:'12px', color:'#10b981', fontWeight:700}}>📈 {item.growth}</span>}
-                    {item.volume && <span style={{fontSize:'12px', color:'var(--text-muted)'}}>🔍 {item.volume}</span>}
-                    {item.competition && <span style={{fontSize:'12px', color:compColor(item.competition), fontWeight:600}}>⚔️ {item.competition} competition</span>}
+                    {item.growth && <span style={{fontSize:'12px', color:'#10b981', fontWeight:700}}> {item.growth}</span>}
+                    {item.volume && <span style={{fontSize:'12px', color:'var(--text-muted)'}}> {item.volume}</span>}
+                    {item.competition && <span style={{fontSize:'12px', color:compColor(item.competition), fontWeight:600}}>️ {item.competition} competition</span>}
                   </div>
                 </div>
 
@@ -114,7 +114,7 @@ export default function DailyPicksPage() {
                 <div style={{display:'flex', flexDirection:'column', gap:'8px', flexShrink:0}}>
                   <button onClick={() => saveToWatchlist(item)} disabled={isSaved||isSaving}
                     style={{background: isSaved?'#10b98120':'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'8px', padding:'7px 14px', fontSize:'12px', color: isSaved?'#10b981':'var(--text-muted)', cursor: isSaved?'default':'pointer', fontWeight:600, whiteSpace:'nowrap'}}>
-                    {isSaving ? '…' : isSaved ? '✅ Saved' : '+ Watchlist'}
+                    {isSaving ? '…' : isSaved ? ' Saved' : '+ Watchlist'}
                   </button>
                   <Link href={`/validate?niche=${encodeURIComponent(name)}`}
                     style={{background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'8px', padding:'7px 14px', fontSize:'12px', color:'var(--text-secondary)', textDecoration:'none', fontWeight:600, textAlign:'center'}}>
