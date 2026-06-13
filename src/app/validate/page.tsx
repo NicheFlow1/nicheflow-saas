@@ -49,7 +49,7 @@ export default function ValidatePage() {
   return (
     <div style={{padding:'32px', maxWidth:'860px'}}>
       <div style={{marginBottom:'28px'}}>
-        <h1 style={{fontSize:'24px', fontWeight:800, color:'var(--text-primary)', margin:'0 0 6px'}}>✅ Niche Validator</h1>
+        <h1 style={{fontSize:'24px', fontWeight:800, color:'var(--text-primary)', margin:'0 0 6px'}}> Niche Validator</h1>
         <p style={{color:'var(--text-muted)', fontSize:'14px', margin:0}}>Get a full viability score with market size, competition, monetization, and trend data.</p>
       </div>
 
@@ -59,7 +59,7 @@ export default function ValidatePage() {
           style={{flex:1, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:'10px', padding:'13px 16px', color:'var(--text-primary)', fontSize:'14px', outline:'none'}}/>
         <button onClick={run} disabled={loading || !niche.trim()}
           style={{background:'var(--accent)', color:'#fff', border:'none', borderRadius:'10px', padding:'13px 24px', fontWeight:700, fontSize:'14px', cursor:loading?'not-allowed':'pointer'}}>
-          {loading ? 'Validating…' : '🔍 Validate'}
+          {loading ? 'Validating…' : ' Validate'}
         </button>
       </div>
 
@@ -76,7 +76,7 @@ export default function ValidatePage() {
             <div style={{flex:1}}>
               <div style={{fontSize:'18px', fontWeight:800, color:'var(--text-primary)', marginBottom:'6px'}}>{result.verdict || (result.overall_score>=70?'Strong opportunity':'Needs more research')}</div>
               <p style={{color:'var(--text-muted)', fontSize:'13px', margin:'0 0 12px'}}>{result.summary || result.analysis || 'Analysis complete.'}</p>
-              {saved && <span style={{fontSize:'11px', color:'#10b981', fontWeight:600}}>✅ Saved to Reports</span>}
+              {saved && <span style={{fontSize:'11px', color:'#10b981', fontWeight:600}}> Saved to Reports</span>}
             </div>
           </div>
 
@@ -105,15 +105,15 @@ export default function ValidatePage() {
           <div style={{display:'flex', gap:'10px'}}>
             <Link href={`/autopilot?niche=${encodeURIComponent(niche)}`}
               style={{background:'var(--accent)', color:'#fff', borderRadius:'10px', padding:'12px 24px', textDecoration:'none', fontSize:'14px', fontWeight:700}}>
-              ⚡ Run Full Autopilot →
+               Run Full Autopilot →
             </Link>
             <Link href={`/keywords?seed=${encodeURIComponent(niche)}`}
               style={{background:'var(--bg-card)', border:'1px solid var(--border)', color:'var(--text-primary)', borderRadius:'10px', padding:'12px 20px', textDecoration:'none', fontSize:'14px', fontWeight:600}}>
-              🔑 Find Keywords →
+               Find Keywords →
             </Link>
             <Link href="/projects"
               style={{background:'var(--bg-card)', border:'1px solid var(--border)', color:'var(--text-primary)', borderRadius:'10px', padding:'12px 20px', textDecoration:'none', fontSize:'14px', fontWeight:600}}>
-              📁 View Reports →
+               View Reports →
             </Link>
           </div>
         </div>
