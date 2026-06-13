@@ -12,13 +12,13 @@ const SB = createClient(
 type Section = { id: string; label: string; icon: string; status: 'pending' | 'loading' | 'done' | 'error' };
 
 const SECTIONS: Section[] = [
-  { id: 'validation',  label: 'Niche Validation',      icon: '✅', status: 'pending' },
-  { id: 'audience',    label: 'Audience Intelligence',  icon: '👥', status: 'pending' },
-  { id: 'keywords',    label: 'Keyword Clusters',       icon: '🔑', status: 'pending' },
-  { id: 'competition', label: 'Competitor Analysis',    icon: '⚔️', status: 'pending' },
-  { id: 'monetization',label: 'Monetization Strategy',  icon: '💰', status: 'pending' },
-  { id: 'content',     label: 'Content Blueprint',      icon: '📝', status: 'pending' },
-  { id: 'starter',     label: 'Starter Kit',            icon: '🚀', status: 'pending' },
+  { id: 'validation',  label: 'Niche Validation',      icon: '', status: 'pending' },
+  { id: 'audience',    label: 'Audience Intelligence',  icon: '', status: 'pending' },
+  { id: 'keywords',    label: 'Keyword Clusters',       icon: '', status: 'pending' },
+  { id: 'competition', label: 'Competitor Analysis',    icon: '️', status: 'pending' },
+  { id: 'monetization',label: 'Monetization Strategy',  icon: '', status: 'pending' },
+  { id: 'content',     label: 'Content Blueprint',      icon: '', status: 'pending' },
+  { id: 'starter',     label: 'Starter Kit',            icon: '', status: 'pending' },
 ];
 
 function AutopilotInner() {
@@ -115,7 +115,7 @@ function AutopilotInner() {
           disabled={running}
           style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '13px 16px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', opacity: running ? 0.7 : 1 }}/>
         <button onClick={run} disabled={running || !niche.trim()} style={{ background: running ? 'var(--bg-elevated)' : 'var(--accent)', color: running ? 'var(--text-muted)' : '#fff', border: 'none', borderRadius: '10px', padding: '13px 26px', fontWeight: 700, fontSize: '14px', cursor: running ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
-          {running ? `Running ${done}/${total}…` : '⚡ Run Autopilot'}
+          {running ? `Running ${done}/${total}…` : ' Run Autopilot'}
         </button>
       </div>
 
@@ -135,7 +135,7 @@ function AutopilotInner() {
           {sections.map((s, i) => (
             <button key={s.id} onClick={() => results[s.id] && setActive(active === s.id ? null : s.id)}
               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: active === s.id ? 'var(--accent)' : 'transparent', border: 'none', borderBottom: i < sections.length-1 ? '1px solid var(--border)' : 'none', cursor: results[s.id] ? 'pointer' : 'default', textAlign: 'left' }}>
-              <span style={{ fontSize: '15px' }}>{s.status === 'loading' ? '⏳' : s.status === 'done' ? '✅' : s.status === 'error' ? '⚠️' : '○'}</span>
+              <span style={{ fontSize: '15px' }}>{s.status === 'loading' ? '' : s.status === 'done' ? '' : s.status === 'error' ? '️' : ''}</span>
               <span style={{ fontSize: '13px', fontWeight: active === s.id ? 700 : 400, color: active === s.id ? '#fff' : s.status === 'done' ? 'var(--text-primary)' : 'var(--text-muted)' }}>{s.label}</span>
               {s.status === 'loading' && <div style={{ marginLeft: 'auto', width: 14, height: 14, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}/>}
             </button>
@@ -146,7 +146,7 @@ function AutopilotInner() {
         <div>
           {!running && done === 0 && (
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '48px', textAlign: 'center' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚡</div>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}></div>
               <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>Ready to run full analysis</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '0 0 20px' }}>Enter a niche and hit Run Autopilot. All 7 analyses run sequentially — takes about 30–60 seconds.</p>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -170,9 +170,9 @@ function AutopilotInner() {
 
           {!running && done === total && done > 0 && !active && (
             <div style={{ background: 'linear-gradient(135deg,#7c3aed18,#10b98118)', border: '1px solid var(--accent)', borderRadius: '16px', padding: '28px', textAlign: 'center' }}>
-              <div style={{ fontSize: '40px', marginBottom: '12px' }}>🎉</div>
+              <div style={{ fontSize: '40px', marginBottom: '12px' }}></div>
               <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px' }}>Full report ready for <span style={{ color: 'var(--accent)' }}>{niche}</span></h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 20px' }}>Click any section on the left to explore.{saved ? ' ✅ Report saved to Projects.' : ''}</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 20px' }}>Click any section on the left to explore.{saved ? 'Report saved to Projects.' : ''}</p>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
                 <Link href="/projects" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)', padding: '10px 20px', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>View in Reports →</Link>
                 <Link href={`/autopilot/starter?niche=${encodeURIComponent(niche)}`} style={{ background: 'var(--accent)', border: 'none', borderRadius: '10px', color: '#fff', padding: '10px 20px', textDecoration: 'none', fontSize: '13px', fontWeight: 700 }}>Build Starter Kit →</Link>
