@@ -1,114 +1,190 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
-type Tab = 'profile' | 'billing' | 'notifications' | 'api';
+const SB = createClient(
+  'https://aincmpxokmsygyghvtnm.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpbmNtcHhva21zeWd5Z2h2dG5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyODQ4NzAsImV4cCI6MjA4OTg2MDg3MH0.qy9k6S3pgNv7CPnvJlgqeGzgzHBB0J59cCWVsbSa75U'
+);
 
-const PLANS = [
-  { name: 'Free', price: '$0', period: '/mo', features: ['10 AI generations/mo','3 niche reports','1 starter kit','Community access'], color: '#6b7280', current: true },
-  { name: 'Pro', price: '$29', period: '/mo', features: ['Unlimited generations','Unlimited reports','Unlimited starter kits','Priority AI','Daily Picks access','Keyword Clusters'], color: '#7c3aed', current: false, popular: true },
-  { name: 'Agency', price: '$79', period: '/mo', features: ['Everything in Pro','5 team seats','White-label reports','API access','Custom integrations','Dedicated support'], color: '#3b82f6', current: false },
-];
+const TABS = ['Profile', 'Billing', 'Notifications', 'API Keys'];
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState<Tab>('profile');
-  const [profile, setProfile] = useState({ name: '', email: '', bio: '' });
+  const [activeTab, setActiveTab] = useState('Profile');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [bio, setBio] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [notifs, setNotifs] = useState({ daily_briefing: true, signal_alerts: true, weekly_digest: true, product_updates: false });
+  const [apiKey, setApiKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
 
-  const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: 'profile', label: 'Profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
-    { id: 'billing', label: 'Billing', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
-    { id: 'notifications', label: 'Notifications', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
-    { id: 'api', label: 'API Keys', icon: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z' },
-  ];
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      const { data: { user } } = await SB.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await SB.from('profiles').select('*').eq('id', user.id).single();
+      setName(profile?.full_name || user?.user_metadata?.full_name || '');
+      setEmail(user?.email || '');
+      setBio(profile?.bio || '');
+      setApiKey(profile?.anthropic_api_key ? '••••••••••••••••••••••••••••••••' : '');
+    } catch {}
+  };
+
+  const saveProfile = async () => {
+    setSaving(true);
+    try {
+      const { data: { user } } = await SB.auth.getUser();
+      if (!user) return;
+      await SB.from('profiles').upsert({ id: user.id, full_name: name, bio, updated_at: new Date().toISOString() });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch {}
+    setSaving(false);
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px',
+    padding: '11px 14px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
+  };
+  const labelStyle: React.CSSProperties = { fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px', display: 'block' };
 
   return (
-    <div style={{ padding: '32px', maxWidth: '900px' }}>
-      <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>Settings</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>Manage your account, billing and preferences</p>
-      </div>
+    <div style={{ padding: '32px', maxWidth: '720px' }}>
+      <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 28px' }}>Settings</h1>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '28px', background: 'var(--bg-card)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-base)' }}>
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, background: tab === t.id ? 'var(--brand-purple)' : 'transparent', color: tab === t.id ? '#fff' : 'var(--text-secondary)', border: 'none', borderRadius: '9px', padding: '9px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d={t.icon} />
-            </svg>
-            {t.label}
+      {/* Tab nav */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '32px', borderBottom: '1px solid var(--border)', paddingBottom: '0' }}>
+        {TABS.map(tab => (
+          <button key={tab} onClick={() => setActiveTab(tab)}
+            style={{ padding: '10px 18px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: activeTab === tab ? 700 : 400, color: activeTab === tab ? 'var(--accent)' : 'var(--text-muted)', borderBottom: activeTab === tab ? '2px solid var(--accent)' : '2px solid transparent', marginBottom: '-1px', transition: 'all 0.15s' }}>
+            {tab}
           </button>
         ))}
       </div>
 
       {/* Profile Tab */}
-      {tab === 'profile' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {[{ label: 'Full Name', key: 'name', placeholder: 'Your name' }, { label: 'Email', key: 'email', placeholder: 'you@example.com' }, { label: 'Bio', key: 'bio', placeholder: 'Tell us about yourself' }].map(f => (
-            <div key={f.key}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>{f.label}</label>
-              <input value={(profile as any)[f.key]} onChange={e => setProfile(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder}
-                style={{ width: '100%', background: 'var(--bg-card)', border: '1px solid var(--border-base)', borderRadius: '10px', padding: '11px 14px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-            </div>
-          ))}
-          <button style={{ alignSelf: 'flex-start', background: 'var(--brand-purple)', color: '#fff', border: 'none', borderRadius: '10px', padding: '11px 24px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>Save Changes</button>
+      {activeTab === 'Profile' && (
+        <div style={{ display: 'grid', gap: '20px' }}>
+          <div>
+            <label style={labelStyle}>Full name</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Email</label>
+            <input value={email} disabled placeholder="your@email.com" style={{ ...inputStyle, opacity: 0.6, cursor: 'not-allowed' }} />
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '6px 0 0' }}>Email changes are not supported yet.</p>
+          </div>
+          <div>
+            <label style={labelStyle}>Bio</label>
+            <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Solo founder, building in AI..." rows={3}
+              style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} />
+          </div>
+          <div>
+            <button onClick={saveProfile} disabled={saving}
+              style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '10px', padding: '11px 24px', fontWeight: 700, fontSize: '14px', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+              {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save changes'}
+            </button>
+          </div>
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#ef4444', marginBottom: '8px' }}>Danger zone</div>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>Permanently delete your account and all data. This cannot be undone.</p>
+            <button style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', borderRadius: '8px', padding: '9px 18px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+              onClick={() => confirm('Are you sure? This will permanently delete your account.') && SB.auth.signOut()}>
+              Delete account
+            </button>
+          </div>
         </div>
       )}
 
       {/* Billing Tab */}
-      {tab === 'billing' && (
-        <div>
-          <div style={{ marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>Choose Your Plan</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>Upgrade anytime. Cancel anytime.</p>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-            {PLANS.map(plan => (
-              <div key={plan.name} style={{ background: 'var(--bg-card)', borderRadius: '14px', border: `2px solid ${plan.popular ? plan.color : 'var(--border-base)'}`, padding: '24px', position: 'relative' }}>
-                {plan.popular && <div style={{ position: 'absolute', top: '-1px', right: '16px', background: plan.color, color: '#fff', fontSize: '10px', fontWeight: 800, padding: '3px 10px', borderRadius: '0 0 8px 8px', letterSpacing: '0.5px' }}>POPULAR</div>}
-                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{plan.name}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '32px', fontWeight: 800, color: plan.color }}>{plan.price}</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{plan.period}</span>
+      {activeTab === 'Billing' && (
+        <div style={{ display: 'grid', gap: '20px' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '14px', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Current plan</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>Starter</span>
+                  <span style={{ background: 'rgba(107,114,128,0.15)', color: '#6b7280', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px' }}>Free</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                  {plan.features.map((f, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={plan.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
-                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{f}</span>
-                    </div>
-                  ))}
-                </div>
-                <button style={{ width: '100%', background: plan.current ? 'var(--bg-hover)' : plan.color, color: plan.current ? 'var(--text-muted)' : '#fff', border: plan.current ? '1px solid var(--border-base)' : 'none', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: 700, cursor: plan.current ? 'default' : 'pointer' }}>
-                  {plan.current ? 'Current Plan' : 'Upgrade'}
-                </button>
               </div>
-            ))}
+              <a href="/pricing" style={{ background: 'var(--accent)', color: '#fff', borderRadius: '10px', padding: '10px 18px', textDecoration: 'none', fontSize: '13px', fontWeight: 700 }}>
+                Upgrade to Pro →
+              </a>
+            </div>
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '16px' }}>
+              {[
+                { label: 'Validations used', value: '3 / 10' },
+                { label: 'Watchlist slots', value: '1 / 3' },
+                { label: 'ARIA messages', value: '8 / 20' },
+              ].map(m => (
+                <div key={m.label}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>{m.label}</div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{m.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '14px', padding: '24px', textAlign: 'center' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '0 0 16px' }}>No active subscription. Upgrade to Pro for unlimited access.</p>
+            <a href="/pricing" style={{ color: 'var(--accent)', fontSize: '14px', fontWeight: 600, textDecoration: 'none' }}>View pricing plans →</a>
           </div>
         </div>
       )}
 
       {/* Notifications Tab */}
-      {tab === 'notifications' && (
-        <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-base)', padding: '24px' }}>
-          {[{ label: 'Daily Picks alerts', desc: 'Get notified when new picks drop' }, { label: 'Trend spikes', desc: 'Alert when a watched niche jumps 50%+' }, { label: 'Weekly digest', desc: 'Summary of your market intel every Monday' }].map((n, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: i < 2 ? '1px solid var(--border-base)' : 'none' }}>
+      {activeTab === 'Notifications' && (
+        <div style={{ display: 'grid', gap: '16px' }}>
+          {[
+            { key: 'daily_briefing', label: 'Daily morning briefing', desc: 'Top 3 GO signals emailed at 8am UTC (Pro)' },
+            { key: 'signal_alerts', label: 'Watchlist signal alerts', desc: 'Email when a niche moves from WAIT → GO' },
+            { key: 'weekly_digest', label: 'Weekly digest', desc: 'Top niches of the week every Monday 9am UTC' },
+            { key: 'product_updates', label: 'Product updates', desc: 'New features and improvements' },
+          ].map(item => (
+            <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px 20px' }}>
               <div>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{n.label}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{n.desc}</div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '3px' }}>{item.label}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{item.desc}</div>
               </div>
-              <div style={{ width: '44px', height: '24px', background: 'var(--brand-purple)', borderRadius: '12px', cursor: 'pointer', position: 'relative' }}>
-                <div style={{ position: 'absolute', right: '3px', top: '3px', width: '18px', height: '18px', background: '#fff', borderRadius: '50%' }} />
-              </div>
+              <button onClick={() => setNotifs(prev => ({ ...prev, [item.key]: !prev[item.key as keyof typeof prev] }))}
+                style={{ width: '44px', height: '24px', borderRadius: '999px', border: 'none', cursor: 'pointer', background: notifs[item.key as keyof typeof notifs] ? 'var(--accent)' : '#374151', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fff', position: 'absolute', top: '3px', left: notifs[item.key as keyof typeof notifs] ? '23px' : '3px', transition: 'left 0.2s' }} />
+              </button>
             </div>
           ))}
+          <button style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '10px', padding: '11px 24px', fontWeight: 700, fontSize: '14px', cursor: 'pointer', width: 'fit-content' }}>
+            Save preferences
+          </button>
         </div>
       )}
 
-      {/* API Tab */}
-      {tab === 'api' && (
-        <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-base)', padding: '24px' }}>
-          <div style={{ marginBottom: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>API access is available on the Agency plan.</div>
-          <div style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-base)', borderRadius: '10px', padding: '14px 18px', fontFamily: 'monospace', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>sk-nf-••••••••••••••••••••••••</div>
-          <button style={{ background: 'var(--brand-purple)', color: '#fff', border: 'none', borderRadius: '10px', padding: '11px 20px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>Generate New Key</button>
+      {/* API Keys Tab */}
+      {activeTab === 'API Keys' && (
+        <div style={{ display: 'grid', gap: '20px' }}>
+          <div style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: '12px', padding: '16px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+              Add your own Anthropic API key to use NicheFlow with your personal API quota. If left blank, NicheFlow uses its shared key (subject to plan limits).
+            </p>
+          </div>
+          <div>
+            <label style={labelStyle}>Anthropic API key</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input value={apiKey} onChange={e => setApiKey(e.target.value)} type={showKey ? 'text' : 'password'} placeholder="sk-ant-..." style={{ ...inputStyle, flex: 1 }} />
+              <button onClick={() => setShowKey(s => !s)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px', padding: '0 14px', fontSize: '12px', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                {showKey ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '6px 0 0' }}>Your key is encrypted before storage. We never log it in plain text.</p>
+          </div>
+          <button style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '10px', padding: '11px 24px', fontWeight: 700, fontSize: '14px', cursor: 'pointer', width: 'fit-content' }}>
+            Save API key
+          </button>
         </div>
       )}
     </div>
