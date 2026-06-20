@@ -2,7 +2,7 @@
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 
-const NO_SIDEBAR = ['/', '/auth/login', '/auth/signup', '/auth/callback', '/privacy', '/terms'];
+const NO_SIDEBAR = ['/', '/auth/login', '/auth/signup', '/auth/callback', '/privacy', '/terms', '/pricing', '/about'];
 const SIDEBAR_W = 220;
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
