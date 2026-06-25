@@ -1,39 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const NVIDIA_BASE = 'https://integrate.api.nvidia.com/v1';
+const NVIDIA_MODEL = 'meta/llama-3.3-70b-instruct';
+
+async function callNvidia(system: string, user: string): Promise<string> {
+  const res = await fetch(NVIDIA_BASE + '/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + process.env.NVIDIA_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: NVIDIA_MODEL, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], temperature: 0.6, max_tokens: 1500 }),
+  });
+  if (!res.ok) throw new Error('NVIDIA ' + res.status);
+  const d = await res.json();
+  return d.choices?.[0]?.message?.content || '';
+}
+
+function parseJSON<T>(raw: string): T {
+  const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  const start = clean.search(/[\[{]/);
+  const end = Math.max(clean.lastIndexOf('}'), clean.lastIndexOf(']'));
+  if (start === -1 || end === -1) throw new Error('No JSON');
+  return JSON.parse(clean.slice(start, end + 1));
+}
 
 export async function POST(req: NextRequest) {
   const { niche } = await req.json();
   if (!niche) return NextResponse.json({ error: 'niche required' }, { status: 400 });
 
-  const res = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: 400,
-    messages: [{
-      role: 'user',
-      content: `Analyze this specific niche trend signal. Be specific — use the actual data provided. Do NOT write generic statements like "rapidly growing interest".
+  const raw = await callNvidia(
+    'You are a market trend analyst. Respond ONLY with valid JSON, no markdown.',
+    `Analyze this trending niche: "${niche}"
+JSON format:
+{
+  "why_trending": "Specific reason this is trending right now in 2026",
+  "opportunity": "Concrete business opportunity to act on",
+  "target_audience": "Who to sell to",
+  "entry_strategy": "How to enter this market fast",
+  "revenue_model": "How to monetize",
+  "competition": "Low" | "Medium" | "High",
+  "urgency": "high" | "medium" | "low",
+  "keywords": ["kw1", "kw2", "kw3"]
+}`
+  );
 
-NICHE: ${niche.name}
-SOCIAL SCORE: ${niche.score}/100
-PRIMARY PLATFORM: ${niche.platform} (${(niche.mentions/1000).toFixed(0)}k mentions)
-TREND DIRECTION: ${niche.trend_direction} (+${niche.growth}% in 30 days)
-RELATED TOPICS RISING: ${niche.related?.join(', ')}
-SIGNAL: ${niche.signal}
-
-Write TWO sections:
-
-WHY TRENDING (1-2 specific sentences): What specific event, cultural shift, demographic change, or technology development is driving this RIGHT NOW in 2026? Name the actual driver. Never say "rapidly growing interest" — that's meaningless.
-
-OPPORTUNITY (1 specific sentence): What specific market gap exists for a founder entering this niche TODAY? Be specific about who is underserved and what they are willing to pay for.
-
-Return ONLY JSON (no markdown, no backticks):
-{"why_trending": "...", "opportunity": "..."}`
-    }]
-  });
-
-  const raw = res.content[0].type === 'text' ? res.content[0].text : '{}';
-  const clean = raw.replace(/```json|```/g, '').trim();
-  const data = JSON.parse(clean);
-  return NextResponse.json(data);
+  const result = parseJSON<Record<string, unknown>>(raw);
+  return NextResponse.json(result);
 }

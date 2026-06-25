@@ -1,19 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const NVIDIA_BASE = 'https://integrate.api.nvidia.com/v1';
+const NVIDIA_MODEL = 'meta/llama-3.3-70b-instruct';
+
+async function callNvidia(messages: { role: string; content: string }[]) {
+  const res = await fetch(NVIDIA_BASE + '/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + process.env.NVIDIA_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: NVIDIA_MODEL, messages, temperature: 0.7, max_tokens: 1024, top_p: 0.9 }),
+  });
+  if (!res.ok) throw new Error('NVIDIA ' + res.status);
+  const d = await res.json();
+  return d.choices?.[0]?.message?.content || '';
+}
 
 export async function POST(req: NextRequest) {
   const { messages, systemPrompt } = await req.json();
   if (!messages?.length) return NextResponse.json({ error: 'messages required' }, { status: 400 });
 
-  const res = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: 1000,
-    system: systemPrompt || 'You are ARIA, NicheFlow\'s market intelligence AI. Help founders find and validate business niches. Be specific and actionable. The year is 2026.',
-    messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
-  });
+  const fullMessages = systemPrompt
+    ? [{ role: 'system', content: systemPrompt }, ...messages]
+    : messages;
 
-  const reply = res.content[0].type === 'text' ? res.content[0].text : 'Sorry, I encountered an error.';
-  return NextResponse.json({ reply });
+  const content = await callNvidia(fullMessages);
+  return NextResponse.json({ content });
 }

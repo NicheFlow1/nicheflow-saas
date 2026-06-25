@@ -50,26 +50,36 @@ export default function ARIAChatPage() {
   };
 
   const buildSystemPrompt = () => {
-    if (!userData) return `You are ARIA, NicheFlow's market intelligence AI. You help founders find, validate, and act on niche business opportunities. Be specific, data-driven, and actionable. The year is 2026.`;
+    if (!userData) return 'You are ARIA, NicheFlow\'s market intelligence AI. You help founders find, validate, and act on niche business opportunities. Be specific, data-driven, and actionable. The year is 2026.';
 
     const { watchlist, picks, validations } = userData;
-    return `You are ARIA, NicheFlow's market intelligence AI. You have access to this user's NicheFlow data. Use it to give specific, personalised answers. The year is 2026.
+    const nl = '\n';
+    const watchlistLines = watchlist.length > 0
+      ? watchlist.map((w: any) => `- ${w.niche_name} (Score: ${w.score}, Signal: ${w.signal})`).join(nl)
+      : '- Empty watchlist';
+    const pickLines = picks.length > 0
+      ? picks.map((p: any) => `- ${p.niche_name} (${p.score}/100, ${p.competition} competition)`).join(nl)
+      : '- No saved picks yet';
+    const validationLines = validations.length > 0
+      ? validations.map((v: any) => `- ${v.niche}: ${v.result?.signal || 'N/A'} (${v.score}/100)`).join(nl)
+      : '- No validations yet';
 
-USER'S NICHEFLOW DATA:
-
-Watchlist (${watchlist.length} niches):
-${watchlist.length > 0 ? watchlist.map((w: any) => `- ${w.niche_name} (Score: ${w.score}, Signal: ${w.signal})`).join('
-') : '- Empty watchlist'}
-
-Recent Daily Picks they saved:
-${picks.length > 0 ? picks.map((p: any) => `- ${p.niche_name} (${p.score}/100, ${p.competition} competition, ${p.revenue_estimate})`).join('
-') : '- No saved picks yet'}
-
-Recent Validations:
-${validations.length > 0 ? validations.map((v: any) => `- ${v.niche}: ${v.result?.signal || 'N/A'} (${v.score}/100)`).join('
-') : '- No validations yet'}
-
-When answering questions about "their best opportunity" or "which niche to pursue", reference their actual data. Be specific. Never give generic advice when you have real data to work with.`;
+    return [
+      "You are ARIA, NicheFlow's market intelligence AI. You have access to this user's NicheFlow data. Use it to give specific, personalised answers. The year is 2026.",
+      '',
+      "USER'S NICHEFLOW DATA:",
+      '',
+      `Watchlist (${watchlist.length} niches):`,
+      watchlistLines,
+      '',
+      'Recent Daily Picks saved:',
+      pickLines,
+      '',
+      'Recent Validations:',
+      validationLines,
+      '',
+      'Reference their actual data when answering about opportunities. Be specific, never generic.',
+    ].join(nl);
   };
 
   const send = async (msg?: string) => {

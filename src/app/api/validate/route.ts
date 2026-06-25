@@ -1,76 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const NVIDIA_BASE = 'https://integrate.api.nvidia.com/v1';
+const NVIDIA_MODEL = 'meta/llama-3.3-70b-instruct';
+
+async function callNvidia(system: string, user: string): Promise<string> {
+  const res = await fetch(NVIDIA_BASE + '/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + process.env.NVIDIA_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: NVIDIA_MODEL, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], temperature: 0.4, max_tokens: 1500 }),
+  });
+  if (!res.ok) throw new Error('NVIDIA ' + res.status);
+  const d = await res.json();
+  return d.choices?.[0]?.message?.content || '';
+}
+
+function parseJSON<T>(raw: string): T {
+  const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  const start = clean.search(/[\[{]/);
+  const end = Math.max(clean.lastIndexOf('}'), clean.lastIndexOf(']'));
+  if (start === -1 || end === -1) throw new Error('No JSON');
+  return JSON.parse(clean.slice(start, end + 1));
+}
+
+const NON_BUSINESS = ['war', 'weapon', 'hack', 'drug', 'gun', 'violence', 'politic', 'news', 'terror', 'death', 'kill'];
 
 export async function POST(req: NextRequest) {
   const { keyword } = await req.json();
   if (!keyword) return NextResponse.json({ error: 'keyword required' }, { status: 400 });
 
-  // Step 1: Business niche classifier
-  try {
-    const classifierResponse = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 150,
-      messages: [{
-        role: 'user',
-        content: `Is "${keyword}" a potential business niche/market opportunity, OR is it a news event, political topic, natural disaster, celebrity gossip, or current event?
-
-Reply with JSON only: {"is_business_niche": true/false, "reason": "one sentence"}`
-      }]
-    });
-    const classifierText = classifierResponse.content[0].type === 'text' ? classifierResponse.content[0].text : '{}';
-    const cleanClassifier = classifierText.replace(/```json|```/g, '').trim();
-    const { is_business_niche, reason } = JSON.parse(cleanClassifier);
-
-    if (!is_business_niche) {
-      return NextResponse.json({
-        error: 'not_a_niche',
-        message: `"${keyword}" appears to be a news event rather than a business niche. Try something like "AI productivity tools for lawyers" or "pet health monitoring devices".`,
-        reason
-      }, { status: 400 });
-    }
-  } catch (e) {
-    // classifier fail — allow through
+  const lower = keyword.toLowerCase();
+  if (NON_BUSINESS.some(w => lower.includes(w))) {
+    return NextResponse.json({ error: 'Please enter a business niche, not a news topic.' }, { status: 422 });
   }
 
-  // Step 2: Full niche validation
-  const res = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: 1200,
-    messages: [{
-      role: 'user',
-      content: `You are a niche market analyst. Validate this business niche for 2026: "${keyword}"
-
-Analyze it thoroughly and return ONLY valid JSON (no markdown, no backticks):
+  const raw = await callNvidia(
+    'You are a niche business analyst. Respond ONLY with valid JSON, no markdown.',
+    `Validate this niche for an online business: "${keyword}"
+JSON format:
 {
-  "overall_score": <0-100 integer>,
-  "signal": "<GO|WAIT|WATCH>",
-  "verdict": "<8 words max>",
-  "summary": "<2-3 specific sentences about this exact niche>",
-  "scores": {
-    "trend_momentum": <0-100>,
-    "competition_gap": <0-100>,
-    "monetization": <0-100>,
-    "audience_size": <0-100>
-  },
-  "market_size": "<e.g. $2.1B TAM>",
-  "competition_level": "<Low|Medium|High>",
-  "trend": "<Rising|Stable|Declining>",
-  "revenue_potential": "<e.g. $1k-5k/mo>",
-  "keywords": ["<kw1>", "<kw2>", "<kw3>", "<kw4>", "<kw5>"],
-  "opportunity": "<specific gap in this market right now>",
-  "top_entry_strategies": ["<strategy1>", "<strategy2>", "<strategy3>"],
-  "biggest_risk": "<one sentence>"
-}
+  "signal": "GO" | "WAIT" | "NO_GO",
+  "score": 75,
+  "market_size": "$2.4B",
+  "competition": "Low" | "Medium" | "High",
+  "trend": "rising" | "stable" | "declining",
+  "revenue_potential": "$2k-$8k/mo",
+  "time_to_revenue": "60-90 days",
+  "strengths": ["point1", "point2", "point3"],
+  "risks": ["risk1", "risk2"],
+  "next_steps": ["step1", "step2", "step3"],
+  "keywords": ["kw1", "kw2", "kw3"],
+  "summary": "2-3 sentence plain-English verdict."
+}`
+  );
 
-Score thresholds: 70+ = GO (strong signal), 40-69 = WATCH (monitor), <40 = WAIT (not ready).
-Be specific to THIS niche — no generic statements. Use real 2026 market context.`
-    }]
-  });
-
-  const raw = res.content[0].type === 'text' ? res.content[0].text : '{}';
-  const clean = raw.replace(/```json|```/g, '').trim();
-  const data = JSON.parse(clean);
-  return NextResponse.json(data);
+  const result = parseJSON<Record<string, unknown>>(raw);
+  return NextResponse.json(result);
 }
