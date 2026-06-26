@@ -66,7 +66,7 @@ export default function AudiencePage() {
         </button>
       </div>
 
-      {error && <p style={{ color: 'var(--warning)', fontSize: '12px', marginBottom: '16px' }}>⚠ {error}</p>}
+      {error && <p style={{ color: 'var(--warning)', fontSize: '12px', marginBottom: '16px' }}>{error}</p>}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '80px 0' }}>
@@ -78,9 +78,9 @@ export default function AudiencePage() {
           {/* Overview */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px' }}>
             {[
-              { icon: '🌍', label: 'Total Market', value: display.total_market_size },
-              { icon: '📢', label: 'Best Platform', value: display.best_platform },
-              { icon: '👥', label: 'Segments Found', value: `${display.segments.length} audience types` },
+              { icon: 'globe', label: 'Total Market', value: display.total_market_size },
+              { icon: 'megaphone', label: 'Best Platform', value: display.best_platform },
+              { icon: 'users', label: 'Segments Found', value: `${display.segments.length} audience types` },
             ].map(s => (
               <div key={s.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '14px', padding: '18px' }}>
                 <div style={{ fontSize: '22px', marginBottom: '6px' }}>{s.icon}</div>
@@ -93,7 +93,7 @@ export default function AudiencePage() {
           {/* Content strategy */}
           {display.content_strategy && (
             <div style={{ background: 'linear-gradient(135deg,#7c3aed18,#4f46e518)', border: '1px solid var(--accent)', borderRadius: '14px', padding: '20px' }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent)', marginBottom: '6px' }}>💡 CONTENT STRATEGY INSIGHT</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent)', marginBottom: '6px' }}>CONTENT STRATEGY INSIGHT</div>
               <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>{display.content_strategy}</p>
             </div>
           )}
@@ -127,10 +127,10 @@ export default function AudiencePage() {
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                     {[
-                      { title: '😤 Pain Points', items: seg.pain_points, color: '#ef4444' },
-                      { title: '✨ Desires', items: seg.desires, color: '#10b981' },
-                      { title: '🛒 Buying Triggers', items: seg.buying_triggers, color: '#f59e0b' },
-                      { title: '📱 Content Types', items: seg.content_types, color: '#3b82f6' },
+                      { title: 'Pain Points', items: seg.pain_points, color: '#ef4444' },
+                      { title: 'Desires', items: seg.desires, color: '#10b981' },
+                      { title: 'Buying Triggers', items: seg.buying_triggers, color: '#f59e0b' },
+                      { title: 'Content Types', items: seg.content_types, color: '#3b82f6' },
                     ].map(block => (
                       <div key={block.title} style={{ background: 'var(--bg-elevated)', borderRadius: '12px', padding: '16px' }}>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: block.color, marginBottom: '10px' }}>{block.title}</div>
@@ -148,13 +148,13 @@ export default function AudiencePage() {
           {/* Cross-links */}
           <div style={{ display: 'flex', gap: '10px' }}>
             <Link href={`/dashboard/keywords?q=${encodeURIComponent(display.niche)}`} style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '14px', textDecoration: 'none', textAlign: 'center', color: 'var(--text-primary)', fontSize: '13px', fontWeight: 600 }}>
-              🔑 Find Keywords for this audience →
+              Find Keywords →
             </Link>
             <Link href={`/content?niche=${encodeURIComponent(display.niche)}`} style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '14px', textDecoration: 'none', textAlign: 'center', color: 'var(--text-primary)', fontSize: '13px', fontWeight: 600 }}>
-              ✍️ Create content for this audience →
+              Create Content →
             </Link>
             <Link href={`/validate?niche=${encodeURIComponent(display.niche)}`} style={{ flex: 1, background: 'var(--accent)', border: 'none', borderRadius: '12px', padding: '14px', textDecoration: 'none', textAlign: 'center', color: '#fff', fontSize: '13px', fontWeight: 700 }}>
-              ✅ Validate this niche →
+              Validate Niche →
             </Link>
           </div>
         </div>

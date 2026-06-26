@@ -87,7 +87,7 @@ export default function DailyPicksPage() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
             <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Daily Picks</h1>
-            <span style={{ background: '#10b98122', color: '#10b981', border: '1px solid #10b98144', borderRadius: '999px', fontSize: '11px', fontWeight: 700, padding: '2px 10px' }}>● FRESH TODAY</span>
+            <span style={{ background: '#10b98122', color: '#10b981', border: '1px solid #10b98144', borderRadius: '999px', fontSize: '11px', fontWeight: 700, padding: '2px 10px' }}>FRESH TODAY</span>
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>
             5 AI-curated niche opportunities — {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}

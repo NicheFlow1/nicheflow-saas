@@ -81,7 +81,7 @@ export default function RadarPage() {
       <div style={{ marginBottom: '28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Trend Radar</h1>
-          <span style={{ background: '#10b98122', color: '#10b981', border: '1px solid #10b98144', borderRadius: '999px', fontSize: '11px', fontWeight: 700, padding: '2px 10px' }}>● LIVE SIGNALS</span>
+          <span style={{ background: '#10b98122', color: '#10b981', border: '1px solid #10b98144', borderRadius: '999px', fontSize: '11px', fontWeight: 700, padding: '2px 10px' }}>LIVE SIGNALS</span>
         </div>
         <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>Spot emerging niche opportunities before they go mainstream. Powered by social listening + AI trend analysis.</p>
       </div>
@@ -96,11 +96,11 @@ export default function RadarPage() {
           style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px 16px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none' }}
         />
         <button onClick={analyze} disabled={loading} style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px 24px', fontWeight: 700, fontSize: '14px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, flexShrink: 0 }}>
-          {loading ? 'Scanning…' : '🔭 Scan Now'}
+          {loading ? 'Scanning…' : 'Scan Now'}
         </button>
       </div>
 
-      {error && <p style={{ color: 'var(--warning)', fontSize: '12px', marginBottom: '14px' }}>⚠ {error}</p>}
+      {error && <p style={{ color: 'var(--warning)', fontSize: '12px', marginBottom: '14px' }}>{error}</p>}
 
       {/* Stats + filter */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: 10 }}>
@@ -141,7 +141,7 @@ export default function RadarPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
                     <span style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', borderRadius: '6px', padding: '2px 8px', fontSize: '11px' }}>{sig.category}</span>
                     <span style={{ background: TREND_COLOR[sig.trend] + '22', color: TREND_COLOR[sig.trend], border: `1px solid ${TREND_COLOR[sig.trend]}44`, borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: 700 }}>
-                      {sig.trend === 'rising' ? '↑' : sig.trend === 'declining' ? '↓' : '→'} {sig.trend}
+                      {sig.trend === 'rising' ? '' : sig.trend === 'declining' ? '↓' : '→'} {sig.trend}
                     </span>
                     <span style={{ background: COMP_COLOR[sig.competition] + '22', color: COMP_COLOR[sig.competition], border: `1px solid ${COMP_COLOR[sig.competition]}44`, borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: 700 }}>
                       {sig.competition} competition
@@ -174,7 +174,7 @@ export default function RadarPage() {
                   <span key={k} style={{ background: 'rgba(124,58,237,0.1)', color: 'var(--accent)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: '6px', padding: '2px 8px', fontSize: '11px' }}>{k}</span>
                 ))}
                 {sig.sources?.map(s => (
-                  <span key={s} style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', borderRadius: '6px', padding: '2px 8px', fontSize: '11px' }}>📍 {s}</span>
+                  <span key={s} style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', borderRadius: '6px', padding: '2px 8px', fontSize: '11px' }}>{s}</span>
                 ))}
               </div>
 

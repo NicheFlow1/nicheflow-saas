@@ -59,7 +59,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div style={{ marginBottom: '32px' }}>
         <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
-          {greet}{user?.email ? ', ' + user.email.split('@')[0] : ''} 👋
+          {greet}{user?.email ? ', ' + user.email.split('@')[0] : ''}
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} — Here&apos;s your niche intelligence briefing.

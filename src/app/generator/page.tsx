@@ -9,10 +9,10 @@ const SB = createClient(
 );
 
 const MODES = [
-  { id: 'ideas',      label: 'Business Ideas',   icon: '💡', desc: 'Generate 10 business ideas from a niche or skill',         action: 'generate_ideas' },
-  { id: 'names',      label: 'Brand Names',       icon: '✨', desc: 'Creative brand/product names with domain availability',   action: 'generate_names' },
-  { id: 'monetize',   label: 'Monetization Plan', icon: '💰', desc: 'Detailed revenue model for any niche',                    action: 'generate_monetization' },
-  { id: 'positioning',label: 'Positioning',       icon: '🎯', desc: 'Unique angle & positioning strategy vs competitors',      action: 'generate_positioning' },
+  { id: 'ideas',      label: 'Business Ideas',   icon: 'M12 2a7 7 0 017 7c0 2.65-1.47 4.96-3.63 6.18L15 17H9l-.37-1.82A7 7 0 0112 2zm3 15v1a3 3 0 01-6 0v-1h6z', desc: 'Generate 10 business ideas from a niche or skill',         action: 'generate_ideas' },
+  { id: 'names',      label: 'Brand Names',       icon: 'M12 3l1.5 4.5H18l-3.75 2.7 1.5 4.5L12 12l-3.75 2.7 1.5-4.5L6 7.5h4.5z', desc: 'Creative brand/product names with domain availability',   action: 'generate_names' },
+  { id: 'monetize',   label: 'Monetization Plan', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', desc: 'Detailed revenue model for any niche',                    action: 'generate_monetization' },
+  { id: 'positioning',label: 'Positioning',       icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', desc: 'Unique angle & positioning strategy vs competitors',      action: 'generate_positioning' },
 ];
 
 type IdeaResult = { title: string; model: string; effort: string; revenue: string; why: string };
@@ -142,7 +142,7 @@ export default function GeneratorPage() {
         </div>
       </div>
 
-      {error && <p style={{ color: 'var(--warning)', fontSize: '12px', marginBottom: '14px' }}>⚠ {error}</p>}
+      {error && <p style={{ color: 'var(--warning)', fontSize: '12px', marginBottom: '14px' }}>{error}</p>}
 
       {loading && (
         <div style={{ textAlign: 'center', padding: '70px 0' }}>
@@ -158,7 +158,7 @@ export default function GeneratorPage() {
             <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Results for: <span style={{ color: 'var(--accent)' }}>{r.niche}</span></h2>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={saveToProjects} style={{ background: saved ? '#10b981' : 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', color: saved ? '#fff' : 'var(--text-primary)', padding: '7px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-                {saved ? '✓ Saved to Projects' : '💾 Save to Projects'}
+                {saved ? '✓ Saved' : 'Save to Projects'}
               </button>
               <Link href={`/validate?niche=${encodeURIComponent(r.niche)}`} style={{ background: 'var(--accent)', border: 'none', borderRadius: '8px', color: '#fff', padding: '7px 14px', fontSize: '12px', fontWeight: 700, textDecoration: 'none' }}>
                 Validate this →
@@ -176,9 +176,9 @@ export default function GeneratorPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
                       <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{idea.title}</h3>
                       <div style={{ display: 'flex', gap: '6px', flexShrink: 0, marginLeft: '12px' }}>
-                        <span style={{ background: '#10b98122', color: '#10b981', borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: 600 }}>💰 {idea.revenue}</span>
+                        <span style={{ background: '#10b98122', color: '#10b981', borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: 600 }}>{idea.revenue}</span>
                         <span style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', borderRadius: '6px', padding: '2px 8px', fontSize: '11px' }}>{idea.model}</span>
-                        <span style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', borderRadius: '6px', padding: '2px 8px', fontSize: '11px' }}>⚡ {idea.effort}</span>
+                        <span style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', borderRadius: '6px', padding: '2px 8px', fontSize: '11px' }}>{idea.effort}</span>
                       </div>
                     </div>
                     <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>{idea.why}</p>
@@ -213,7 +213,7 @@ export default function GeneratorPage() {
                     <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{m.stream}</h3>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <span style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', borderRadius: '6px', padding: '3px 10px', fontSize: '12px' }}>{m.type}</span>
-                      <span style={{ background: '#10b98122', color: '#10b981', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', fontWeight: 700 }}>💰 {m.monthly_potential}/mo</span>
+                      <span style={{ background: '#10b98122', color: '#10b981', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', fontWeight: 700 }}>{m.monthly_potential}/mo</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -238,8 +238,8 @@ export default function GeneratorPage() {
                 <p style={{ fontSize: '16px', color: 'var(--text-secondary)', fontStyle: 'italic', margin: 0 }}>"{r.positioning.tagline}"</p>
               </div>
               {[
-                { label: '🎯 Target Customer', value: r.positioning.target },
-                { label: '⚔️ Key Differentiator', value: r.positioning.differentiator },
+                { label: 'Target Customer', value: r.positioning.target },
+                { label: 'Key Differentiator', value: r.positioning.differentiator },
               ].map(b => (
                 <div key={b.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '14px', padding: '18px' }}>
                   <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>{b.label}</div>
@@ -247,7 +247,7 @@ export default function GeneratorPage() {
                 </div>
               ))}
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '14px', padding: '18px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '10px' }}>🏆 Competitors to Beat</div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '10px' }}>Competitors to Beat</div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {r.positioning.competitors.map(c => (
                     <span key={c} style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: '8px', padding: '5px 12px', fontSize: '13px' }}>{c}</span>
