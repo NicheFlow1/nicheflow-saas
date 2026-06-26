@@ -12,17 +12,17 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   if (!showSidebar) return <>{children}</>;
 
   return (
-    <>
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
       <main style={{
         marginLeft: SIDEBAR_W,
+        flex: 1,
         minHeight: '100vh',
         background: 'var(--bg-base)',
-        boxSizing: 'border-box',
-        width: `calc(100vw - ${SIDEBAR_W}px)`,
+        minWidth: 0,
       }}>
         {children}
       </main>
-    </>
+    </div>
   );
 }
