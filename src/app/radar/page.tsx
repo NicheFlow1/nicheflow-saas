@@ -1,6 +1,6 @@
 'use client';
 import { getSupabaseClient } from '@/lib/supabase/client-singleton';
-mport { useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 
 type Signal = {
