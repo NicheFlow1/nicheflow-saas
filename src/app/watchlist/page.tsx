@@ -24,7 +24,7 @@ export default function WatchlistPage() {
     try {
       const res = await fetch('/api/autopilot', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
         body: JSON.stringify({ action: 'watchlist_get' })
       });
       const data = await res.json();
@@ -39,7 +39,7 @@ export default function WatchlistPage() {
   async function removeItem(id: string) {
     await fetch('/api/autopilot', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
       body: JSON.stringify({ action: 'watchlist_remove', id })
     });
     setItems(prev => prev.filter(i => i.id !== id));
@@ -50,7 +50,7 @@ export default function WatchlistPage() {
     try {
       const res = await fetch('/api/autopilot', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
         body: JSON.stringify({ action: 'forecast', niche })
       });
       const data = await res.json();

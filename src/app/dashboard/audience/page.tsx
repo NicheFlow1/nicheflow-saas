@@ -29,7 +29,7 @@ export default function AudiencePage() {
     try {
       const res = await fetch('/api/autopilot', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
         body: JSON.stringify({ action: 'audience_intel', niche: query.trim() }), // fixed: was "topic"
       });
       const data = await res.json();

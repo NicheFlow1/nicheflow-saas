@@ -37,7 +37,7 @@ function AutopilotInner() {
     setLoading(true); setKit(null); setStep(0);
     const interval = setInterval(() => setStep(s => s < 3 ? s + 1 : s), 6000);
     try {
-      const res = await fetch('/api/autopilot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ niche: keyword }) });
+      const res = await fetch('/api/autopilot', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` }, body: JSON.stringify({ niche: keyword }) });
       const data = await res.json();
       clearInterval(interval);
       setKit(data);

@@ -47,7 +47,7 @@ export default function DailyPicksPage() {
     try {
       const res = await fetch('/api/autopilot', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
         body: JSON.stringify({ action: 'daily_picks' }),
       });
       const data = await res.json();

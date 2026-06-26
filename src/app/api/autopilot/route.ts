@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!;
+const SUPABASE_URL = 'https://aincmpxokmsygyghvtnm.supabase.co';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { action } = body;
+
+    // Forward the user's JWT from the incoming request
+    const authHeader = req.headers.get('Authorization') || '';
 
     // Route to correct edge function
     let endpoint = '/functions/v1/autopilot';
@@ -17,7 +19,7 @@ export async function POST(req: Request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Authorization': authHeader,
       },
       body: JSON.stringify(body),
     });

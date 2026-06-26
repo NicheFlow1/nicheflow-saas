@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { getSupabaseClient } from '@/lib/supabase/client-singleton';
+mport { useState } from 'react';
 import Link from 'next/link';
 
 type Signal = {
@@ -42,9 +43,11 @@ export default function RadarPage() {
   const analyze = async () => {
     setLoading(true); setError('');
     try {
+      const sb = getSupabaseClient();
+      const { data: { session } } = await sb.auth.getSession();
       const res = await fetch('/api/autopilot', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
         body: JSON.stringify({ action: 'radar_analyze', niche: query.trim() || 'emerging trends 2026' }),
       });
       const data = await res.json();

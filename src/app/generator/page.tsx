@@ -88,9 +88,10 @@ export default function GeneratorPage() {
     if (!input.trim()) return;
     setLoading(true); setError(''); setResult(null); setSaved(false);
     try {
+      const { data: { session: sess } } = await SB.auth.getSession();
       const res = await fetch('/api/autopilot', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sess?.access_token || ''}` },
         body: JSON.stringify({ action: currentMode.action, niche: input.trim(), prompt: input.trim() }),
       });
       const data = await res.json();

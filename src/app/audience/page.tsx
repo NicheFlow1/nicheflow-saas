@@ -1,4 +1,5 @@
 'use client';
+import { getSupabaseClient } from '@/lib/supabase/client-singleton';
 import { useState } from 'react';
 import Link from 'next/link';
 
@@ -14,7 +15,7 @@ export default function AudiencePage() {
     try {
       const res = await fetch('/api/autopilot', {
         method: 'POST',
-        headers: {'Content-Type':'application/json'},
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
         body: JSON.stringify({ action: 'audience_intel', niche: niche.trim() }),
       });
       const data = await res.json();
