@@ -124,7 +124,7 @@ export default function GeneratorPage() {
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
         {MODES.map(m => (
           <button key={m.id} onClick={() => { setMode(m.id); setResult(null); setError(''); }} style={{ display: 'flex', alignItems: 'center', gap: '7px', background: mode === m.id ? 'var(--accent)' : 'var(--bg-card)', border: `1px solid ${mode === m.id ? 'var(--accent)' : 'var(--border)'}`, borderRadius: '10px', padding: '9px 16px', color: mode === m.id ? '#fff' : 'var(--text-secondary)', fontSize: '13px', fontWeight: mode === m.id ? 700 : 400, cursor: 'pointer' }}>
-            <span>{m.icon}</span>{m.label}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d={m.icon}/></svg>{m.label}
           </button>
         ))}
       </div>
@@ -137,7 +137,7 @@ export default function GeneratorPage() {
             placeholder={mode === 'ideas' ? 'e.g. AI tools, fitness for busy dads, pet care…' : mode === 'names' ? 'e.g. productivity app for remote teams' : mode === 'monetize' ? 'e.g. cooking blog, AI newsletter, Shopify niche store' : 'e.g. project management tool for freelancers'}
             style={{ flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none' }}/>
           <button onClick={generate} disabled={loading} style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '8px', padding: '11px 22px', fontWeight: 700, fontSize: '14px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, flexShrink: 0 }}>
-            {loading ? 'Generating…' : `Generate ${currentMode.icon}`}
+            {loading ? 'Generating…' : `Generate ${currentMode.label}`}
           </button>
         </div>
       </div>
