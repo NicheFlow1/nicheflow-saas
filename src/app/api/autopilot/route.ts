@@ -1,11 +1,12 @@
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 import { NextResponse } from 'next/server';
 
 const NVIDIA = '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';
 const NVIDIA_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
-const MODEL = 'meta/llama-3.3-70b-instruct';
+const MODEL = 'meta/llama-3.1-8b-instruct';
 
-async function ai(system: string, user: string, maxTokens = 1500): Promise<string> {
+async function ai(system: string, user: string, maxTokens = 800): Promise<string> {
   const res = await fetch(NVIDIA_URL, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${NVIDIA}`, 'Content-Type': 'application/json' },
