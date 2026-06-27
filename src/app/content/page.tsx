@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 import React, { useState, useEffect, useRef } from 'react';
 import { getSupabaseClient } from '@/lib/supabase/client-singleton';
 import { Sparkles, AlertCircle, Copy, Check, Trash2 } from 'lucide-react';

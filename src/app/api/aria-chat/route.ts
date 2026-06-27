@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 
 const NVIDIA_BASE = 'https://integrate.api.nvidia.com/v1';

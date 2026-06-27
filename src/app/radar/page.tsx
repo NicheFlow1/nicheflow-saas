@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 import { getSupabaseClient } from '@/lib/supabase/client-singleton';
 import { useState } from 'react';
 import Link from 'next/link';

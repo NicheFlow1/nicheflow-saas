@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 import { useState } from 'react';
 
 type Keyword = { keyword: string; volume: number; difficulty: number; cpc: number; intent: string };
