@@ -230,3 +230,7 @@ Signals: GO, WATCH, AVOID.`
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
+
+export async function GET() {
+  return Response.json({ ok: true, model: 'meta/llama-3.1-8b-instruct', ts: Date.now() });
+}

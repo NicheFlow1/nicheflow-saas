@@ -1,7 +1,8 @@
 {
   "functions": {
-    "src/app/api/**/*.ts": {
-      "maxDuration": 60
-    }
+    "app/api/autopilot/route": { "maxDuration": 60 },
+    "app/api/validate/route": { "maxDuration": 60 },
+    "app/api/aria-chat/route": { "maxDuration": 60 },
+    "app/api/trending-analysis/route": { "maxDuration": 60 }
   }
 }
